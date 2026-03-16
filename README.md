@@ -8,11 +8,12 @@
 
 ## 📷 Screenshots
 
-<!-- Add your screenshots here -->
-![Map View](./Screenshots/screenshot_map.png)
-![Navigation](./Screenshots/screenshot_navigation.png)
-
----
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/c7cc0cca-6442-4a0f-8756-489710d3d809" width="250" />
+  <img src="https://github.com/user-attachments/assets/820db7ab-47c6-4e31-b60d-fb4459e32c40" width="250" />
+  <img src="https://github.com/user-attachments/assets/4151b176-e890-4369-a4de-6925e7cf746d" width="250" />
+  <img src="https://github.com/user-attachments/assets/4f10f5d5-678d-4d47-83bf-c055953e6353" width="250" />
+</p>
 
 ## ✨ New Features (v2.0)
 
