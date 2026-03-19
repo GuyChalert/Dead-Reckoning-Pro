@@ -65,6 +65,19 @@
 
 ---
 
+### Bugs and things to fix 🐛 :
+
+Major improvements:
+- No offline maps or offline map manager.
+- Improved compass mode in "no GPS" mode.
+
+Minor improvements:
+- In "no GPS" mode, the route no longer follows GPS data.
+- Added the project URL to the "About" menu.
+- Fixed the GPS status display in the main view.
+
+
+---
 ## How It Works
 
 ### Dead Reckoning Algorithm
