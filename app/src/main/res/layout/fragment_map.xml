@@ -308,6 +308,41 @@
         android:orientation="vertical">
 
         <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/fabLogLandmark"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:contentDescription="@string/log_landmark"
+            android:src="@drawable/ic_landmark"
+            android:visibility="gone"
+            app:backgroundTint="@color/colorWarning"
+            app:fabSize="normal"
+            app:tint="@android:color/white" />
+
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/fabExport"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:contentDescription="@string/export_map"
+            android:src="@drawable/ic_export"
+            android:visibility="gone"
+            app:backgroundTint="@color/colorPrimary"
+            app:fabSize="normal"
+            app:tint="@android:color/white" />
+
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/fabLayers"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:contentDescription="@string/open_layers"
+            android:src="@drawable/ic_layers"
+            app:backgroundTint="@color/colorPrimary"
+            app:fabSize="normal"
+            app:tint="@android:color/white" />
+
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
             android:id="@+id/fabCenterGPS"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -371,6 +406,53 @@
         </com.google.android.material.card.MaterialCardView>
 
     </LinearLayout>
+
+    <!-- Pocket Mode Overlay: full-screen black, minimal metrics -->
+    <FrameLayout
+        android:id="@+id/pocketModeOverlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#FF000000"
+        android:visibility="gone">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:padding="24dp">
+
+            <TextView
+                android:id="@+id/pocketTextDistance"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="0.00 m"
+                android:textColor="#FFFFFFFF"
+                android:textSize="36sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/pocketTextSteps"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="0 steps"
+                android:textColor="#CCFFFFFF"
+                android:textSize="20sp" />
+
+            <TextView
+                android:id="@+id/pocketTextElevation"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="0.0 m elev"
+                android:textColor="#99FFFFFF"
+                android:textSize="16sp" />
+
+        </LinearLayout>
+
+    </FrameLayout>
 
     <!-- Degree Dial Overlay -->
     <FrameLayout

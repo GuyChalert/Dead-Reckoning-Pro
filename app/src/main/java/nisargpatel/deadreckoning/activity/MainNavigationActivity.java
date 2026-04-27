@@ -66,6 +66,7 @@ public class MainNavigationActivity extends AppCompatActivity implements SensorE
     private Sensor sensorMagnetic;
     private Sensor sensorGyroscope;
     private Sensor sensorLinearAcceleration;
+    private Sensor sensorGameRotationVector;
 
     private DeadReckoningEngine deadReckoningEngine;
     private PreciseHeadingEstimator headingEstimator;
@@ -217,6 +218,7 @@ public class MainNavigationActivity extends AppCompatActivity implements SensorE
         sensorMagnetic = sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
         sensorGyroscope = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
         sensorLinearAcceleration = sensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION);
+        sensorGameRotationVector = sensorManager.getDefaultSensor(Sensor.TYPE_GAME_ROTATION_VECTOR);
 
         registerSensors();
     }
@@ -233,6 +235,9 @@ public class MainNavigationActivity extends AppCompatActivity implements SensorE
         }
         if (sensorLinearAcceleration != null) {
             sensorManager.registerListener(this, sensorLinearAcceleration, SensorManager.SENSOR_DELAY_FASTEST);
+        }
+        if (sensorGameRotationVector != null) {
+            sensorManager.registerListener(this, sensorGameRotationVector, SensorManager.SENSOR_DELAY_FASTEST);
         }
     }
 
@@ -476,6 +481,9 @@ public class MainNavigationActivity extends AppCompatActivity implements SensorE
             case Sensor.TYPE_GYROSCOPE:
                 gyro = values;
                 headingEstimator.updateGyroscope(values, timestamp);
+                break;
+            case Sensor.TYPE_GAME_ROTATION_VECTOR:
+                headingEstimator.updateRotationVector(values);
                 break;
             case Sensor.TYPE_LINEAR_ACCELERATION:
                 linearAccel = values;

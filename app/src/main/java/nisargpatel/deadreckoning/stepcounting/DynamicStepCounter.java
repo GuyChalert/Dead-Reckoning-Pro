@@ -122,8 +122,8 @@ public class DynamicStepCounter {
             return;
         }
 
-        //moving average equation
-        avgAcc = ((avgAcc) * (((double)runCount-1.0)/(double)runCount)) + (acc/(double)runCount);
+        // EMA — avoids freezing threshold as runCount grows unbounded
+        avgAcc = 0.98 * avgAcc + 0.02 * acc;
 
         upperThreshold = avgAcc + sensitivity;
         lowerThreshold = avgAcc - sensitivity;

@@ -66,6 +66,13 @@ public class TrackingService extends Service implements SensorEventListener {
     private Sensor sensorMagnetic;
     private Sensor sensorGyroscope;
     private Sensor sensorLinearAcceleration;
+    private Sensor sensorAccelerometer;      // raw accel for pocket detection
+    private Sensor sensorPressure;           // barometer for elevation
+    // Preferred: hardware-fused, magnetometer-free — ideal underground
+    private Sensor sensorGameRotationVector;
+
+    private final nisargpatel.deadreckoning.sensor.PocketStateDetector pocketDetector =
+            new nisargpatel.deadreckoning.sensor.PocketStateDetector();
 
     private DeadReckoningEngine deadReckoningEngine;
     private PreciseHeadingEstimator headingEstimator;
@@ -160,10 +167,13 @@ public class TrackingService extends Service implements SensorEventListener {
 
     private void initSensors() {
         sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
-        sensorGravity = sensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY);
-        sensorMagnetic = sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
-        sensorGyroscope = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
-        sensorLinearAcceleration = sensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION);
+        sensorGravity             = sensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY);
+        sensorMagnetic            = sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
+        sensorGyroscope           = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
+        sensorLinearAcceleration  = sensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION);
+        sensorAccelerometer       = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+        sensorPressure            = sensorManager.getDefaultSensor(Sensor.TYPE_PRESSURE);
+        sensorGameRotationVector  = sensorManager.getDefaultSensor(Sensor.TYPE_GAME_ROTATION_VECTOR);
     }
 
     private void initLocation() {
@@ -232,17 +242,29 @@ public class TrackingService extends Service implements SensorEventListener {
     }
 
     private void registerSensors() {
+        // SENSOR_DELAY_FASTEST → ~200 Hz on Snapdragon 8 Elite sensor hub.
+        // Required by HIGH_SAMPLING_RATE_SENSORS permission (already in manifest).
         if (sensorGravity != null) {
-            sensorManager.registerListener(this, sensorGravity, SensorManager.SENSOR_DELAY_GAME);
+            sensorManager.registerListener(this, sensorGravity, SensorManager.SENSOR_DELAY_FASTEST);
         }
         if (sensorMagnetic != null) {
-            sensorManager.registerListener(this, sensorMagnetic, SensorManager.SENSOR_DELAY_GAME);
+            sensorManager.registerListener(this, sensorMagnetic, SensorManager.SENSOR_DELAY_FASTEST);
         }
         if (sensorGyroscope != null) {
-            sensorManager.registerListener(this, sensorGyroscope, SensorManager.SENSOR_DELAY_GAME);
+            sensorManager.registerListener(this, sensorGyroscope, SensorManager.SENSOR_DELAY_FASTEST);
         }
         if (sensorLinearAcceleration != null) {
-            sensorManager.registerListener(this, sensorLinearAcceleration, SensorManager.SENSOR_DELAY_GAME);
+            sensorManager.registerListener(this, sensorLinearAcceleration, SensorManager.SENSOR_DELAY_FASTEST);
+        }
+        if (sensorAccelerometer != null) {
+            sensorManager.registerListener(this, sensorAccelerometer, SensorManager.SENSOR_DELAY_FASTEST);
+        }
+        if (sensorGameRotationVector != null) {
+            sensorManager.registerListener(this, sensorGameRotationVector, SensorManager.SENSOR_DELAY_FASTEST);
+        }
+        // Barometer needs only ~1 Hz — changes slowly relative to IMU
+        if (sensorPressure != null) {
+            sensorManager.registerListener(this, sensorPressure, SensorManager.SENSOR_DELAY_NORMAL);
         }
     }
 
@@ -326,6 +348,18 @@ public class TrackingService extends Service implements SensorEventListener {
             case Sensor.TYPE_MAGNETIC_FIELD:
                 headingEstimator.updateMagneticField(values);
                 break;
+            case Sensor.TYPE_GYROSCOPE:
+                headingEstimator.updateGyroscope(values, event.timestamp);
+                break;
+            case Sensor.TYPE_GAME_ROTATION_VECTOR:
+                headingEstimator.updateRotationVector(values);
+                break;
+            case Sensor.TYPE_ACCELEROMETER:
+                pocketDetector.update(values);
+                break;
+            case Sensor.TYPE_PRESSURE:
+                deadReckoningEngine.updateBarometer(values[0]);
+                break;
             case Sensor.TYPE_LINEAR_ACCELERATION:
                 deadReckoningEngine.updateSensors(
                         headingEstimator.getGravity(),
@@ -377,6 +411,21 @@ public class TrackingService extends Service implements SensorEventListener {
     public void turnAround() {
         if (isTracking) {
             deadReckoningEngine.turnAround();
+        }
+    }
+
+    public nisargpatel.deadreckoning.sensor.PocketStateDetector.State getPocketState() {
+        return pocketDetector.getState();
+    }
+
+    public double getElevation() {
+        return deadReckoningEngine.getElevation();
+    }
+
+    /** Register a painted distance marker from the UI. */
+    public void addLandmarkDistance(double measuredMetres) {
+        if (isTracking) {
+            deadReckoningEngine.addLandmarkDistance(measuredMetres);
         }
     }
 

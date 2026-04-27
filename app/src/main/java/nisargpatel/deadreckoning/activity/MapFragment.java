@@ -13,6 +13,7 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.hardware.camera2.CameraManager;
 import android.location.Location;
 import android.os.Bundle;
 import android.os.Looper;
@@ -24,6 +25,11 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import nisargpatel.deadreckoning.gis.LayerControlSheet;
+import nisargpatel.deadreckoning.gis.LayerManager;
+import nisargpatel.deadreckoning.power.PowerDutyManager;
+import nisargpatel.deadreckoning.sensor.PocketStateDetector;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -55,6 +61,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import nisargpatel.deadreckoning.R;
+import nisargpatel.deadreckoning.export.TunnelMapExporter;
 import nisargpatel.deadreckoning.model.Marker;
 import nisargpatel.deadreckoning.preferences.TurnModePreferences;
 import nisargpatel.deadreckoning.preferences.StepCounterPreferences;
@@ -79,6 +86,7 @@ public class MapFragment extends Fragment implements SensorEventListener {
     private Sensor sensorMagnetic;
     private Sensor sensorGyroscope;
     private Sensor sensorLinearAcceleration;
+    private Sensor sensorGameRotationVector;
 
     private DeadReckoningEngine deadReckoningEngine;
     private PreciseHeadingEstimator headingEstimator;
@@ -105,6 +113,8 @@ public class MapFragment extends Fragment implements SensorEventListener {
     private FloatingActionButton fabCenterGPS;
     private FloatingActionButton fabAddMarker;
     private FloatingActionButton fabClearAll;
+    private FloatingActionButton fabLogLandmark;
+    private FloatingActionButton fabExport;
     private com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton buttonStartStop;
     private MaterialButton buttonPause;
     private MaterialButton buttonNoGPS;
@@ -113,6 +123,17 @@ public class MapFragment extends Fragment implements SensorEventListener {
     private MaterialCardView cardDirection;
     private FrameLayout dialOverlayContainer;
     private DegreeDialView degreeDialView;
+
+    private LayerManager layerManager;
+    private FloatingActionButton fabLayers;
+
+    private PowerDutyManager dutyManager;
+    private PocketStateDetector pocketDetector;
+    private Sensor sensorAccelerometer;
+    private FrameLayout pocketModeOverlay;
+    private TextView pocketTextDistance;
+    private TextView pocketTextSteps;
+    private TextView pocketTextElevation;
 
     private List<GeoPoint> pathPoints = new ArrayList<>();
     private List<GeoPoint> noGPSPathPoints = new ArrayList<>();
@@ -153,10 +174,13 @@ public class MapFragment extends Fragment implements SensorEventListener {
         markerStorage = new MarkerStorage(requireContext());
         isManualMode = turnModePrefs.getTurnMode() == TurnModePreferences.TurnMode.MANUAL;
 
+        layerManager = new LayerManager(requireContext());
         initViews(view);
         initSensors();
+        initPowerDutyManager(view);
         initLocation();
         initMap(view);
+        layerManager.attach(mapView);
         initEngine();
         updateTurnModeUI();
         loadMarkers();
@@ -179,7 +203,9 @@ public class MapFragment extends Fragment implements SensorEventListener {
         buttonTurnAround = view.findViewById(R.id.buttonTurnAround);
         fabCenterGPS = view.findViewById(R.id.fabCenterGPS);
         fabAddMarker = view.findViewById(R.id.fabAddMarker);
-        fabClearAll = view.findViewById(R.id.fabClearAll);
+        fabClearAll  = view.findViewById(R.id.fabClearAll);
+        fabLogLandmark = view.findViewById(R.id.fabLogLandmark);
+        fabExport    = view.findViewById(R.id.fabExport);
         buttonStartStop = view.findViewById(R.id.buttonStartStop);
         buttonPause = view.findViewById(R.id.buttonPause);
         buttonNoGPS = view.findViewById(R.id.buttonNoGPS);
@@ -233,12 +259,18 @@ public class MapFragment extends Fragment implements SensorEventListener {
             }
         });
 
+        fabLayers = view.findViewById(R.id.fabLayers);
+        fabLayers.setOnClickListener(v -> openLayerControl());
+
         fabCenterGPS.setOnClickListener(v -> centerOnGPS());
         
         fabAddMarker.setOnClickListener(v -> toggleAddMarkerMode());
         
         fabClearAll.setOnClickListener(v -> showClearAllDialog());
-        
+
+        fabLogLandmark.setOnClickListener(v -> showLandmarkDialog());
+        fabExport.setOnClickListener(v -> showExportDialog());
+
         if (buttonStartStop != null) {
             buttonStartStop.setOnClickListener(v -> {
                 if (isTracking) {
@@ -411,20 +443,50 @@ public class MapFragment extends Fragment implements SensorEventListener {
         sensorMagnetic = sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
         sensorGyroscope = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
         sensorLinearAcceleration = sensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION);
+        sensorGameRotationVector = sensorManager.getDefaultSensor(Sensor.TYPE_GAME_ROTATION_VECTOR);
+        sensorAccelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+    }
+
+    private void initPowerDutyManager(View view) {
+        pocketDetector = new PocketStateDetector();
+        pocketModeOverlay = view.findViewById(R.id.pocketModeOverlay);
+        pocketTextDistance = view.findViewById(R.id.pocketTextDistance);
+        pocketTextSteps = view.findViewById(R.id.pocketTextSteps);
+        pocketTextElevation = view.findViewById(R.id.pocketTextElevation);
+
+        CameraManager cameraManager =
+            (CameraManager) requireContext().getSystemService(Context.CAMERA_SERVICE);
+        dutyManager = new PowerDutyManager(requireActivity().getWindow(), cameraManager);
+        dutyManager.addListener(state -> {
+            if (!isAdded()) return;
+            requireActivity().runOnUiThread(() -> {
+                if (state == PowerDutyManager.State.POCKET_WALKING) {
+                    pocketModeOverlay.setVisibility(View.VISIBLE);
+                } else {
+                    pocketModeOverlay.setVisibility(View.GONE);
+                }
+            });
+        });
     }
 
     private void registerSensors() {
         if (sensorGravity != null) {
-            sensorManager.registerListener(this, sensorGravity, SensorManager.SENSOR_DELAY_GAME);
+            sensorManager.registerListener(this, sensorGravity, SensorManager.SENSOR_DELAY_FASTEST);
         }
         if (sensorMagnetic != null) {
-            sensorManager.registerListener(this, sensorMagnetic, SensorManager.SENSOR_DELAY_GAME);
+            sensorManager.registerListener(this, sensorMagnetic, SensorManager.SENSOR_DELAY_FASTEST);
         }
         if (sensorGyroscope != null) {
-            sensorManager.registerListener(this, sensorGyroscope, SensorManager.SENSOR_DELAY_GAME);
+            sensorManager.registerListener(this, sensorGyroscope, SensorManager.SENSOR_DELAY_FASTEST);
         }
         if (sensorLinearAcceleration != null) {
-            sensorManager.registerListener(this, sensorLinearAcceleration, SensorManager.SENSOR_DELAY_GAME);
+            sensorManager.registerListener(this, sensorLinearAcceleration, SensorManager.SENSOR_DELAY_FASTEST);
+        }
+        if (sensorGameRotationVector != null) {
+            sensorManager.registerListener(this, sensorGameRotationVector, SensorManager.SENSOR_DELAY_FASTEST);
+        }
+        if (sensorAccelerometer != null) {
+            sensorManager.registerListener(this, sensorAccelerometer, SensorManager.SENSOR_DELAY_FASTEST);
         }
     }
 
@@ -577,6 +639,10 @@ public class MapFragment extends Fragment implements SensorEventListener {
             cardDirection.setVisibility(View.VISIBLE);
         }
 
+        fabLogLandmark.setVisibility(View.VISIBLE);
+
+        if (dutyManager != null) dutyManager.setTrackingActive(true);
+
         updatePathOnMap();
         Toast.makeText(requireContext(), "Tracking started", Toast.LENGTH_SHORT).show();
     }
@@ -586,7 +652,15 @@ public class MapFragment extends Fragment implements SensorEventListener {
         isPaused = false;
         deadReckoningEngine.stop();
 
+        if (dutyManager != null) dutyManager.setTrackingActive(false);
+
         manualTurnControls.setVisibility(View.GONE);
+        fabLogLandmark.setVisibility(View.GONE);
+
+        // Show export FAB after session ends so path can be exported
+        if (deadReckoningEngine.getSlamEngine().getNodeCount() > 0) {
+            fabExport.setVisibility(View.VISIBLE);
+        }
 
         if (buttonPause != null) {
             buttonPause.setVisibility(View.GONE);
@@ -694,6 +768,12 @@ public class MapFragment extends Fragment implements SensorEventListener {
             case Sensor.TYPE_MAGNETIC_FIELD:
                 headingEstimator.updateMagneticField(values);
                 break;
+            case Sensor.TYPE_GYROSCOPE:
+                headingEstimator.updateGyroscope(values, event.timestamp);
+                break;
+            case Sensor.TYPE_GAME_ROTATION_VECTOR:
+                headingEstimator.updateRotationVector(values);
+                break;
             case Sensor.TYPE_LINEAR_ACCELERATION:
                 if (isTracking && !isPaused) {
                     deadReckoningEngine.updateSensors(
@@ -706,15 +786,31 @@ public class MapFragment extends Fragment implements SensorEventListener {
                     updateUI();
                 }
                 break;
+            case Sensor.TYPE_ACCELEROMETER:
+                if (pocketDetector != null && dutyManager != null) {
+                    pocketDetector.update(values);
+                    dutyManager.onPocketStateChanged(pocketDetector.getState());
+                }
+                break;
         }
     }
 
     private void updateUI() {
         if (getActivity() == null) return;
-        
+
         getActivity().runOnUiThread(() -> {
-            textSteps.setText(String.valueOf(deadReckoningEngine.getStepCount()));
-            textDistance.setText(String.format("%.2f m", deadReckoningEngine.getDistance()));
+            int steps = deadReckoningEngine.getStepCount();
+            double dist = deadReckoningEngine.getDistance();
+            textSteps.setText(String.valueOf(steps));
+            textDistance.setText(String.format("%.2f m", dist));
+
+            if (pocketModeOverlay != null && pocketModeOverlay.getVisibility() == View.VISIBLE) {
+                pocketTextDistance.setText(String.format("%.0f m", dist));
+                pocketTextSteps.setText(steps + " steps");
+                pocketTextElevation.setText(String.format("%.1f m elev",
+                    deadReckoningEngine.getElevation()));
+            }
+
             double heading = deadReckoningEngine.getHeading();
             textHeading.setText(String.format("%.1f°", heading));
 
@@ -813,6 +909,12 @@ public class MapFragment extends Fragment implements SensorEventListener {
 
     @Override
     public void onAccuracyChanged(Sensor sensor, int accuracy) {
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        if (dutyManager != null) dutyManager.release();
     }
 
     @Override
@@ -1038,5 +1140,92 @@ public class MapFragment extends Fragment implements SensorEventListener {
         mapMarkers.clear();
         markerStorage.clearAllMarkers();
         mapView.invalidate();
+    }
+
+    // ------------------------------------------------------------------
+    // Slice E: GIS layer control
+    // ------------------------------------------------------------------
+
+    private void openLayerControl() {
+        LayerControlSheet.newInstance(layerManager)
+            .show(getChildFragmentManager(), "layers");
+    }
+
+    // ------------------------------------------------------------------
+    // Slice C: distance marking dialog
+    // ------------------------------------------------------------------
+
+    private void showLandmarkDialog() {
+        android.widget.EditText input = new android.widget.EditText(requireContext());
+        input.setInputType(
+            android.text.InputType.TYPE_CLASS_NUMBER | android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL);
+        input.setHint(getString(R.string.landmark_hint));
+        input.setTextColor(ContextCompat.getColor(requireContext(), R.color.textPrimary));
+
+        new android.app.AlertDialog.Builder(requireContext())
+            .setTitle(R.string.landmark_dialog_title)
+            .setView(input)
+            .setPositiveButton(R.string.confirm, (d, w) -> {
+                String txt = input.getText() != null ? input.getText().toString().trim() : "";
+                if (txt.isEmpty()) {
+                    Toast.makeText(requireContext(), getString(R.string.invalid_value), Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                try {
+                    double metres = Double.parseDouble(txt);
+                    deadReckoningEngine.addLandmarkDistance(metres);
+                    Toast.makeText(requireContext(),
+                        getString(R.string.landmark_logged, metres), Toast.LENGTH_SHORT).show();
+                } catch (NumberFormatException e) {
+                    Toast.makeText(requireContext(), getString(R.string.invalid_value), Toast.LENGTH_SHORT).show();
+                }
+            })
+            .setNegativeButton(R.string.cancel, null)
+            .show();
+    }
+
+    // ------------------------------------------------------------------
+    // Slice C: export dialog
+    // ------------------------------------------------------------------
+
+    private void showExportDialog() {
+        if (!deadReckoningEngine.getSlamEngine().hasOrigin()
+                || deadReckoningEngine.getSlamEngine().getNodeCount() == 0) {
+            Toast.makeText(requireContext(), R.string.no_slam_path, Toast.LENGTH_LONG).show();
+            return;
+        }
+
+        String[] formats = {"GeoJSON", "KML", "CSV"};
+        new android.app.AlertDialog.Builder(requireContext())
+            .setTitle(R.string.export_format_title)
+            .setItems(formats, (d, which) -> {
+                TunnelMapExporter.Format fmt;
+                switch (which) {
+                    case 0:  fmt = TunnelMapExporter.Format.GEOJSON; break;
+                    case 1:  fmt = TunnelMapExporter.Format.KML;     break;
+                    default: fmt = TunnelMapExporter.Format.CSV;     break;
+                }
+                doExport(fmt);
+            })
+            .setNegativeButton(R.string.cancel, null)
+            .show();
+    }
+
+    private void doExport(TunnelMapExporter.Format fmt) {
+        new Thread(() -> {
+            try {
+                java.io.File f = TunnelMapExporter.export(
+                    requireContext(), deadReckoningEngine.getSlamEngine(), fmt);
+                requireActivity().runOnUiThread(() ->
+                    Toast.makeText(requireContext(),
+                        getString(R.string.exported_path, f.getAbsolutePath()),
+                        Toast.LENGTH_LONG).show());
+            } catch (Exception e) {
+                requireActivity().runOnUiThread(() ->
+                    Toast.makeText(requireContext(),
+                        getString(R.string.export_error, e.getMessage()),
+                        Toast.LENGTH_LONG).show());
+            }
+        }).start();
     }
 }

@@ -239,4 +239,35 @@
     <string name="everything_cleared">All cleared</string>
     <string name="tap_location">Tap on the map to place marker</string>
 
+    <!-- Slice E: GIS layer control -->
+    <string name="layer_panel_title">Map Layers</string>
+    <string name="layer_presets">Pre-configured layers</string>
+    <string name="layer_active">Active layers</string>
+    <string name="layer_ign_ortho">IGN Ortho</string>
+    <string name="layer_ign_topo">IGN Topo</string>
+    <string name="layer_brgm_geo">BRGM Géologie</string>
+    <string name="layer_add_custom">Add custom WMS/WMTS…</string>
+    <string name="layer_add_title">Add WMS / WMTS Layer</string>
+    <string name="layer_url_hint">Service endpoint URL</string>
+    <string name="layer_url_empty">Enter a service URL</string>
+    <string name="layer_service_type">Service type</string>
+    <string name="layer_fetch">Fetch layers</string>
+    <string name="layer_fetching">Fetching capabilities…</string>
+    <string name="layer_no_compatible">No Web Mercator–compatible layers found</string>
+    <string name="layer_fetch_error">Fetch failed: %s</string>
+    <string name="layer_pick_title">Select layer</string>
+    <string name="layer_added">Layer added: %s</string>
+    <string name="open_layers">Open layer control</string>
+
+    <!-- Slice C: distance marking + export -->
+    <string name="log_landmark">Log KM Mark</string>
+    <string name="export_map">Export map</string>
+    <string name="landmark_dialog_title">Distance Marking</string>
+    <string name="landmark_hint">Measured distance (m) — e.g. 12000 for KM 12</string>
+    <string name="landmark_logged">Marker logged: %1$.0f m — SLAM updated</string>
+    <string name="no_slam_path">No SLAM path yet — need GPS anchor first</string>
+    <string name="export_format_title">Export format</string>
+    <string name="exported_path">Saved: %s</string>
+    <string name="export_error">Export failed: %s</string>
+
 </resources>

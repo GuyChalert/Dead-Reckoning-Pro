@@ -7,24 +7,29 @@ import org.osmdroid.util.GeoPoint;
 import java.util.ArrayList;
 import java.util.List;
 
+import nisargpatel.deadreckoning.bias.GyroscopeBias;
 import nisargpatel.deadreckoning.model.Trip;
 import nisargpatel.deadreckoning.model.TurnEvent;
 import nisargpatel.deadreckoning.preferences.StepCounterPreferences;
-import nisargpatel.deadreckoning.stepcounting.DynamicStepCounter;
+import nisargpatel.deadreckoning.slam.GraphSlamEngine;
 import nisargpatel.deadreckoning.stepcounting.StaticStepCounter;
-import nisargpatel.deadreckoning.preferences.StepCounterPreferences;
 
 public class DeadReckoningEngine {
-    
+
     private final EnhancedStepCounter stepCounter;
     private final PreciseHeadingEstimator headingEstimator;
     private final GPSCalibrator gpsCalibrator;
-    
+    private final GraphSlamEngine slamEngine;
+
     private double currentX = 0;
     private double currentY = 0;
     private double currentHeading = 0;
     private double previousHeading = 0;
     private double totalDistance = 0;
+
+    // Barometric elevation (metres relative to session start)
+    private float  pressureAtStart  = Float.NaN;
+    private double currentElevation = 0;
     
     private boolean isRunning = false;
     private Location startLocation = null;
@@ -42,16 +47,18 @@ public class DeadReckoningEngine {
     private int androidStepCount = 0;
     private int staticStepCount = 0;
     private StepCounterPreferences.StepMode stepMode = StepCounterPreferences.StepMode.DYNAMIC;
-    
-    private DynamicStepCounter dynamicStepCounter;
+
     private StaticStepCounter staticStepCounter;
-    
+    // Online gyro bias tracker updated at ZUPT (stationary) windows
+    private final GyroscopeBias gyroBias;
+    private float[] lastRawGyro = null;
+
     public DeadReckoningEngine() {
         stepCounter = new EnhancedStepCounter();
         headingEstimator = new PreciseHeadingEstimator();
         gpsCalibrator = new GPSCalibrator();
-        
-        dynamicStepCounter = new DynamicStepCounter(0.875);
+        gyroBias = new GyroscopeBias(200);
+        slamEngine = new GraphSlamEngine();
         staticStepCounter = new StaticStepCounter(2, 1.9);
     }
     
@@ -66,7 +73,7 @@ public class DeadReckoningEngine {
         currentTrip = new Trip();
         turnEvents.clear();
         useManualHeading = false;
-        
+
         currentX = 0;
         currentY = 0;
         currentHeading = 0;
@@ -74,6 +81,8 @@ public class DeadReckoningEngine {
         totalDistance = 0;
         accumulatedHeadingChange = 0;
         stepsSinceLastTurn = 0;
+        pressureAtStart = Float.NaN;
+        currentElevation = 0;
     }
     
     public void stop() {
@@ -114,7 +123,7 @@ public class DeadReckoningEngine {
     
     public void updateSensors(float[] gravity, float[] magnetic, float[] gyro, float[] linearAccel, long timestamp) {
         if (!isRunning) return;
-        
+
         if (gravity != null) {
             headingEstimator.updateGravity(gravity);
         }
@@ -122,28 +131,36 @@ public class DeadReckoningEngine {
             headingEstimator.updateMagneticField(magnetic);
         }
         if (gyro != null) {
-            headingEstimator.updateGyroscope(gyro, timestamp);
+            lastRawGyro = gyro;
+            // Apply current bias estimate before feeding to heading estimator
+            float[] correctedGyro = new float[]{
+                gyro[0] - gyroBias.getBias()[0],
+                gyro[1] - gyroBias.getBias()[1],
+                gyro[2] - gyroBias.getBias()[2]
+            };
+            headingEstimator.updateGyroscope(correctedGyro, timestamp);
         }
-        
-        if (gravity != null && magnetic != null) {
+
+        // Update heading whenever we have any valid orientation source
+        if (headingEstimator.hasValidData()) {
             previousHeading = currentHeading;
             if (!useManualHeading) {
                 currentHeading = headingEstimator.getHeadingDegrees();
             }
             detectTurn();
         }
-        
+
         if (linearAccel != null) {
             double magnitude = Math.sqrt(
                 linearAccel[0] * linearAccel[0] +
                 linearAccel[1] * linearAccel[1] +
                 linearAccel[2] * linearAccel[2]
             );
-            
+
             boolean dynamicDetected = stepCounter.detectStep(linearAccel, timestamp);
             boolean staticDetected = staticStepCounter.findStep(magnitude);
             boolean detected = false;
-            
+
             switch (stepMode) {
                 case DYNAMIC:
                     detected = dynamicDetected;
@@ -155,10 +172,15 @@ public class DeadReckoningEngine {
                     detected = false;
                     break;
             }
-            
+
             if (detected) {
                 updatePosition();
                 stepsSinceLastTurn++;
+            }
+
+            // ZUPT: while stationary, update gyro bias online to track thermal drift
+            if (stepCounter.isStationary() && lastRawGyro != null) {
+                gyroBias.updateFromZupt(lastRawGyro);
             }
         }
     }
@@ -231,14 +253,18 @@ public class DeadReckoningEngine {
         double strideLength = stepCounter.getStrideLength();
         double correctedHeading = gpsCalibrator.correctHeading(currentHeading);
         double headingRadians = Math.toRadians(correctedHeading);
-        
-        double deltaX = strideLength * Math.sin(headingRadians);
-        double deltaY = strideLength * Math.cos(headingRadians);
-        
-        currentX += deltaX;
-        currentY += deltaY;
+
+        // Body-frame step: stride along heading direction
+        double dxBody = strideLength * Math.sin(headingRadians);
+        double dyBody = strideLength * Math.cos(headingRadians);
+
+        currentX += dxBody;
+        currentY += dyBody;
         totalDistance += strideLength;
-        
+
+        // Feed incremental odometry into Graph-SLAM
+        slamEngine.addOdometryStep(dxBody, dyBody, Math.toRadians(correctedHeading - previousHeading));
+
         if (currentTrip != null) {
             GeoPoint point = calculateGeoPoint(currentX, currentY);
             if (point != null) {
@@ -260,32 +286,58 @@ public class DeadReckoningEngine {
         return new GeoPoint(Math.toDegrees(newLatRad), Math.toDegrees(newLonRad));
     }
     
+    /**
+     * Register a barometric pressure reading from TYPE_PRESSURE sensor.
+     * First reading calibrates the baseline; subsequent readings compute
+     * relative altitude change in metres using the hypsometric formula.
+     */
+    public void updateBarometer(float hPa) {
+        if (!isRunning) return;
+        if (Float.isNaN(pressureAtStart)) {
+            pressureAtStart = hPa;
+            currentElevation = 0;
+        } else {
+            // Hypsometric formula (valid for small ΔP, ~10 cm resolution with BMP5xx)
+            currentElevation = 44330.0 * (1.0 - Math.pow(hPa / pressureAtStart, 1.0 / 5.255));
+        }
+    }
+
+    /**
+     * Register a painted distance marker (e.g. "KM 12" → 12000.0 m).
+     * Adds a landmark constraint to the Graph-SLAM engine and triggers optimization.
+     */
+    public void addLandmarkDistance(double measuredMetres) {
+        slamEngine.addLandmarkDistance(measuredMetres);
+    }
+
     public void calibrateWithGPS(Location location) {
         if (location == null || !location.hasAccuracy() || location.getAccuracy() > 20) {
             return;
         }
-        
+
         if (startLocation == null) {
             startLocation = location;
             lastGPSLocation = location;
-            
+
             if (currentTrip != null) {
                 currentTrip.addPoint(new GeoPoint(location.getLatitude(), location.getLongitude()));
             }
+
+            // First GPS fix becomes the SLAM ENZ origin
+            slamEngine.addGpsAnchor(location);
             return;
         }
-        
-        gpsCalibrator.addCalibrationPoint(
-            location,
-            currentX,
-            currentY
-        );
-        
+
+        gpsCalibrator.addCalibrationPoint(location, currentX, currentY);
+
         double[] corrected = gpsCalibrator.correctPosition(currentX, currentY, currentHeading);
         currentX = corrected[0];
         currentY = corrected[1];
-        
+
         lastGPSLocation = location;
+
+        // Intermediate GPS fix: add as anchor to constrain SLAM graph
+        slamEngine.addGpsAnchor(location);
     }
     
     public double getX() {
@@ -448,8 +500,17 @@ public class DeadReckoningEngine {
         currentHeading = heading;
         useManualHeading = true;
     }
-    
+
     public void resetToCompassHeading() {
         useManualHeading = false;
     }
+
+    /** Relative altitude in metres since session start (from barometer). */
+    public double getElevation() { return currentElevation; }
+
+    /** Current pressure in hPa (reference at session start). */
+    public float getPressureAtStart() { return pressureAtStart; }
+
+    /** Access Graph-SLAM engine (e.g. for loop-closure or path export). */
+    public GraphSlamEngine getSlamEngine() { return slamEngine; }
 }

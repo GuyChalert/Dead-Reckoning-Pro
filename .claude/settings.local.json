@@ -1,0 +1,34 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(rtk read *)",
+      "Bash(rtk find *)",
+      "Bash(rtk ls *)",
+      "Read(//data/data/com.termux/files/home/.dual-graph/**)",
+      "Bash(rtk curl *)",
+      "Bash(rtk grep *)",
+      "Bash(bash gradlew *)",
+      "Bash(java -version)",
+      "Read(//data/data/com.termux/files/usr/bin/**)",
+      "Bash(/data/data/com.termux/files/usr/bin/java -version)",
+      "Bash(time ./gradlew clean compileDebugJavaWithJavac --no-daemon)",
+      "Bash(chmod +x /data/data/com.termux/files/home/code/Dead-Reckoning-Pro/gradlew)",
+      "Bash(time /data/data/com.termux/files/home/code/Dead-Reckoning-Pro/gradlew clean compileDebugJavaWithJavac --no-daemon)",
+      "Bash(pkg list-installed *)",
+      "Bash(pkg search *)",
+      "Bash(grep -v \"^$\\\\|source\\\\|-x\\\\|Checking\\\\|\\\\[\\\\*\\\\]\\\\|Sorting\\\\|Full\")",
+      "Bash(/data/data/com.termux/files/usr/lib/jvm/java-17-openjdk/bin/java -version)",
+      "Bash(./gradlew :app:tasks --all --no-daemon)",
+      "Bash(./gradlew :app:assembleDebug --no-daemon)",
+      "Bash(./gradlew --no-daemon --info)",
+      "Bash(javac Benchmark.java)",
+      "Bash(java -Xint Benchmark)",
+      "Bash(java Benchmark)",
+      "WebFetch(domain:gemini.google.com)",
+      "WebFetch(domain:consent.google.com)",
+      "Bash(rtk git *)",
+      "Bash(rtk wc *)",
+      "Bash(rtk proxy *)"
+    ]
+  }
+}

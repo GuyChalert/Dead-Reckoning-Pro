@@ -1,0 +1,4 @@
+-keep class org.ejml.** { *; }
+-keep class org.osmdroid.** { *; }
+-dontwarn org.ejml.**
+-dontwarn org.osmdroid.**
