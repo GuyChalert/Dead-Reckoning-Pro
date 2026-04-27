@@ -1,0 +1,60 @@
+{
+  "entries": {
+    "test app gps pocket compass battery cases|tf=5|te=12": {
+      "created_epoch": 1777298226,
+      "files": [
+        ".claude/settings.local.json"
+      ],
+      "mtimes_ns": {
+        ".claude/settings.local.json": 1777297833253031026
+      },
+      "result": {
+        "ok": true,
+        "query": "test app GPS pocket compass battery use cases",
+        "graph_files": [
+          {
+            "id": ".claude/settings.local.json",
+            "kind": "file",
+            "path": ".claude/settings.local.json",
+            "ext": ".json",
+            "size": 1386,
+            "keywords": [],
+            "summary": "\"permissions\": {.",
+            "file_hash": "b076466a",
+            "_score": 1,
+            "_role": "code",
+            "_intent": "test"
+          }
+        ],
+        "graph_edges": [
+          {
+            "from": "add_tech_spec.md",
+            "to": "//gemini.go",
+            "rel": "references"
+          },
+          {
+            "from": "CLAUDE.md",
+            "to": "src/auth.ts",
+            "rel": "references"
+          },
+          {
+            "from": "CLAUDE.md",
+            "to": "src/db.ts",
+            "rel": "references"
+          },
+          {
+            "from": "CLAUDE.md",
+            "to": "relevant/file.ts",
+            "rel": "references"
+          }
+        ],
+        "grep_hits": [],
+        "reuse_candidates": [],
+        "read_budget": {
+          "remaining_chars": 60000,
+          "reuse_gate_candidates": []
+        }
+      }
+    }
+  }
+}

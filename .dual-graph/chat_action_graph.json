@@ -1,0 +1,639 @@
+{
+  "nodes": [
+    {
+      "id": "query:resume previous tasks refactor slices",
+      "type": "query",
+      "meta": {
+        "text": "resume previous tasks refactor slices"
+      }
+    },
+    {
+      "id": ".claude/settings.local.json",
+      "type": "file"
+    },
+    {
+      "id": "query:slice ign brgm wmts wms wfs connector",
+      "type": "query",
+      "meta": {
+        "text": "slice E IGN BRGM WMTS WMS WFS connector"
+      }
+    },
+    {
+      "id": "add_tech_spec.md",
+      "type": "file"
+    },
+    {
+      "id": "query:wmts wms tile layer ign brgm map",
+      "type": "query",
+      "meta": {
+        "text": "WMTS WMS tile layer IGN BRGM map"
+      }
+    },
+    {
+      "id": "app/src/main/java/nisargpatel/deadreckoning/activity/MapFragment.java",
+      "type": "file"
+    },
+    {
+      "id": "query:ign brgm wmts wms layer management",
+      "type": "query",
+      "meta": {
+        "text": "IGN BRGM WMTS WMS layer management"
+      }
+    },
+    {
+      "id": "app/src/main/java/nisargpatel/deadreckoning/gis/LayerManager.java",
+      "type": "file"
+    },
+    {
+      "id": "query:dependencies shapefile proj mbtile",
+      "type": "query",
+      "meta": {
+        "text": "dependencies shapefile proj mbtile"
+      }
+    },
+    {
+      "id": "app/build.gradle",
+      "type": "file"
+    },
+    {
+      "id": "action:edit:1777296595",
+      "type": "action",
+      "meta": {
+        "summary": "Slice F: Shapefile import + Proj4j EPSG reprojection"
+      }
+    },
+    {
+      "id": "app/proguard-rules.pro",
+      "type": "file"
+    },
+    {
+      "id": "app/src/main/java/nisargpatel/deadreckoning/gis/PrjParser.java",
+      "type": "file"
+    },
+    {
+      "id": "app/src/main/java/nisargpatel/deadreckoning/gis/ShapefileReader.java",
+      "type": "file"
+    },
+    {
+      "id": "app/src/main/java/nisargpatel/deadreckoning/gis/ShapefileOverlay.java",
+      "type": "file"
+    },
+    {
+      "id": "app/src/main/java/nisargpatel/deadreckoning/gis/LayerControlSheet.java",
+      "type": "file"
+    },
+    {
+      "id": "app/src/main/res/layout/sheet_layers.xml",
+      "type": "file"
+    },
+    {
+      "id": "app/src/main/res/values/strings.xml",
+      "type": "file"
+    },
+    {
+      "id": "action:edit:1777297093",
+      "type": "action",
+      "meta": {
+        "summary": "Slice G: MBTiles + GeoTIFF raster import"
+      }
+    },
+    {
+      "id": "app/src/main/java/nisargpatel/deadreckoning/gis/MBTilesArchive.java",
+      "type": "file"
+    },
+    {
+      "id": "app/src/main/java/nisargpatel/deadreckoning/gis/GeoKeyReader.java",
+      "type": "file"
+    },
+    {
+      "id": "app/src/main/java/nisargpatel/deadreckoning/gis/GeoTiffImporter.java",
+      "type": "file"
+    },
+    {
+      "id": "app/src/main/java/nisargpatel/deadreckoning/gis/RasterOverlay.java",
+      "type": "file"
+    },
+    {
+      "id": "query:last slice raster mbtiles geotiff implementation",
+      "type": "query",
+      "meta": {
+        "text": "last slice raster MBTiles GeoTIFF implementation"
+      }
+    },
+    {
+      "id": "action:edit:1777297956",
+      "type": "action",
+      "meta": {
+        "summary": "Slice H: offline tile download with draggable bounding-box UI"
+      }
+    },
+    {
+      "id": "app/src/main/java/nisargpatel/deadreckoning/gis/BoundingBoxOverlay.java",
+      "type": "file"
+    },
+    {
+      "id": "app/src/main/java/nisargpatel/deadreckoning/gis/OfflineTileDownloader.java",
+      "type": "file"
+    },
+    {
+      "id": "query:test app gps pocket compass battery cases",
+      "type": "query",
+      "meta": {
+        "text": "test app GPS pocket compass battery use cases"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "query:resume previous tasks refactor slices",
+      "to": ".claude/settings.local.json",
+      "rel": "retrieved",
+      "ts": 1777296158
+    },
+    {
+      "from": "query:slice ign brgm wmts wms wfs connector",
+      "to": "add_tech_spec.md",
+      "rel": "read",
+      "ts": 1777296180,
+      "meta": {
+        "mode": "query_excerpt"
+      }
+    },
+    {
+      "from": "query:wmts wms tile layer ign brgm map",
+      "to": "app/src/main/java/nisargpatel/deadreckoning/activity/MapFragment.java",
+      "rel": "read",
+      "ts": 1777296192,
+      "meta": {
+        "mode": "query_excerpt"
+      }
+    },
+    {
+      "from": "query:ign brgm wmts wms layer management",
+      "to": "app/src/main/java/nisargpatel/deadreckoning/gis/LayerManager.java",
+      "rel": "read",
+      "ts": 1777296210,
+      "meta": {
+        "mode": "full"
+      }
+    },
+    {
+      "from": "query:dependencies shapefile proj mbtile",
+      "to": "app/build.gradle",
+      "rel": "read",
+      "ts": 1777296227,
+      "meta": {
+        "mode": "full"
+      }
+    },
+    {
+      "from": "action:edit:1777296595",
+      "to": "app/build.gradle",
+      "rel": "edited",
+      "ts": 1777296595
+    },
+    {
+      "from": "action:edit:1777296595",
+      "to": "app/proguard-rules.pro",
+      "rel": "edited",
+      "ts": 1777296595
+    },
+    {
+      "from": "action:edit:1777296595",
+      "to": "app/src/main/java/nisargpatel/deadreckoning/gis/PrjParser.java",
+      "rel": "edited",
+      "ts": 1777296595
+    },
+    {
+      "from": "action:edit:1777296595",
+      "to": "app/src/main/java/nisargpatel/deadreckoning/gis/ShapefileReader.java",
+      "rel": "edited",
+      "ts": 1777296595
+    },
+    {
+      "from": "action:edit:1777296595",
+      "to": "app/src/main/java/nisargpatel/deadreckoning/gis/ShapefileOverlay.java",
+      "rel": "edited",
+      "ts": 1777296595
+    },
+    {
+      "from": "action:edit:1777296595",
+      "to": "app/src/main/java/nisargpatel/deadreckoning/gis/LayerControlSheet.java",
+      "rel": "edited",
+      "ts": 1777296595
+    },
+    {
+      "from": "action:edit:1777296595",
+      "to": "app/src/main/java/nisargpatel/deadreckoning/activity/MapFragment.java",
+      "rel": "edited",
+      "ts": 1777296595
+    },
+    {
+      "from": "action:edit:1777296595",
+      "to": "app/src/main/res/layout/sheet_layers.xml",
+      "rel": "edited",
+      "ts": 1777296595
+    },
+    {
+      "from": "action:edit:1777296595",
+      "to": "app/src/main/res/values/strings.xml",
+      "rel": "edited",
+      "ts": 1777296595
+    },
+    {
+      "from": "action:edit:1777297093",
+      "to": "app/build.gradle",
+      "rel": "edited",
+      "ts": 1777297093
+    },
+    {
+      "from": "action:edit:1777297093",
+      "to": "app/proguard-rules.pro",
+      "rel": "edited",
+      "ts": 1777297093
+    },
+    {
+      "from": "action:edit:1777297093",
+      "to": "app/src/main/java/nisargpatel/deadreckoning/gis/MBTilesArchive.java",
+      "rel": "edited",
+      "ts": 1777297093
+    },
+    {
+      "from": "action:edit:1777297093",
+      "to": "app/src/main/java/nisargpatel/deadreckoning/gis/GeoKeyReader.java",
+      "rel": "edited",
+      "ts": 1777297093
+    },
+    {
+      "from": "action:edit:1777297093",
+      "to": "app/src/main/java/nisargpatel/deadreckoning/gis/GeoTiffImporter.java",
+      "rel": "edited",
+      "ts": 1777297093
+    },
+    {
+      "from": "action:edit:1777297093",
+      "to": "app/src/main/java/nisargpatel/deadreckoning/gis/RasterOverlay.java",
+      "rel": "edited",
+      "ts": 1777297093
+    },
+    {
+      "from": "action:edit:1777297093",
+      "to": "app/src/main/java/nisargpatel/deadreckoning/gis/LayerManager.java",
+      "rel": "edited",
+      "ts": 1777297093
+    },
+    {
+      "from": "action:edit:1777297093",
+      "to": "app/src/main/java/nisargpatel/deadreckoning/gis/LayerControlSheet.java",
+      "rel": "edited",
+      "ts": 1777297093
+    },
+    {
+      "from": "action:edit:1777297093",
+      "to": "app/src/main/res/layout/sheet_layers.xml",
+      "rel": "edited",
+      "ts": 1777297093
+    },
+    {
+      "from": "action:edit:1777297093",
+      "to": "app/src/main/res/values/strings.xml",
+      "rel": "edited",
+      "ts": 1777297093
+    },
+    {
+      "from": "query:last slice raster mbtiles geotiff implementation",
+      "to": ".claude/settings.local.json",
+      "rel": "retrieved",
+      "ts": 1777297155
+    },
+    {
+      "from": "action:edit:1777297956",
+      "to": "app/src/main/java/nisargpatel/deadreckoning/gis/BoundingBoxOverlay.java",
+      "rel": "edited",
+      "ts": 1777297956
+    },
+    {
+      "from": "action:edit:1777297956",
+      "to": "app/src/main/java/nisargpatel/deadreckoning/gis/OfflineTileDownloader.java",
+      "rel": "edited",
+      "ts": 1777297956
+    },
+    {
+      "from": "action:edit:1777297956",
+      "to": "app/src/main/java/nisargpatel/deadreckoning/gis/LayerManager.java",
+      "rel": "edited",
+      "ts": 1777297956
+    },
+    {
+      "from": "action:edit:1777297956",
+      "to": "app/src/main/java/nisargpatel/deadreckoning/gis/LayerControlSheet.java",
+      "rel": "edited",
+      "ts": 1777297956
+    },
+    {
+      "from": "action:edit:1777297956",
+      "to": "app/src/main/java/nisargpatel/deadreckoning/activity/MapFragment.java",
+      "rel": "edited",
+      "ts": 1777297956
+    },
+    {
+      "from": "action:edit:1777297956",
+      "to": "app/src/main/res/layout/sheet_layers.xml",
+      "rel": "edited",
+      "ts": 1777297956
+    },
+    {
+      "from": "action:edit:1777297956",
+      "to": "app/src/main/res/values/strings.xml",
+      "rel": "edited",
+      "ts": 1777297956
+    },
+    {
+      "from": "query:test app gps pocket compass battery cases",
+      "to": ".claude/settings.local.json",
+      "rel": "retrieved",
+      "ts": 1777298226
+    }
+  ],
+  "files": {
+    "add_tech_spec.md": {
+      "query_terms": [
+        "slice",
+        "ign",
+        "brgm",
+        "wmts",
+        "wms",
+        "wfs",
+        "connector"
+      ],
+      "cached_content": "Precision: You can expect a drift of roughly 2% to 5% of the total distance traveled if your algorithms are well-tuned. On a 1km tunnel trek, you might find your \"end point\" is off by 20\u201350 meters.\n\nThe \"Killer\" Factor: Heading (direction) drift is far more destructive than step-length error. A 5-de",
+      "cached_chars": 20000,
+      "cached_tokens_est": 5000,
+      "last_action": "read",
+      "last_ts": 1777296180
+    },
+    "app/src/main/java/nisargpatel/deadreckoning/activity/MapFragment.java": {
+      "query_terms": [
+        "wmts",
+        "wms",
+        "tile",
+        "layer",
+        "ign",
+        "brgm",
+        "map"
+      ],
+      "cached_content": "import android.location.Location;\nimport android.os.Bundle;\nimport android.os.Looper;\nimport android.view.LayoutInflater;\nimport android.view.View;\nimport android.view.ViewGroup;\nimport android.widget.FrameLayout;\nimport android.widget.ImageView;\nimport android.widget.LinearLayout;\nimport android.wi",
+      "cached_chars": 20000,
+      "cached_tokens_est": 5000,
+      "last_action": "edited",
+      "last_ts": "2026-04-27T13:52:36.085010+00:00",
+      "edited_count": 2
+    },
+    "app/src/main/java/nisargpatel/deadreckoning/gis/LayerManager.java": {
+      "query_terms": [
+        "ign",
+        "brgm",
+        "wmts",
+        "wms",
+        "layer",
+        "management"
+      ],
+      "cached_content": "package nisargpatel.deadreckoning.gis;\n\nimport android.content.Context;\nimport android.graphics.Canvas;\n\nimport org.osmdroid.tileprovider.MapTileProviderBasic;\nimport org.osmdroid.tileprovider.tilesource.OnlineTileSourceBase;\nimport org.osmdroid.views.MapView;\nimport org.osmdroid.views.overlay.Tiles",
+      "cached_chars": 6232,
+      "cached_tokens_est": 1558,
+      "last_action": "edited",
+      "last_ts": "2026-04-27T13:52:36.084995+00:00",
+      "edited_count": 2
+    },
+    "app/build.gradle": {
+      "query_terms": [
+        "dependencies",
+        "shapefile",
+        "proj",
+        "mbtile"
+      ],
+      "cached_content": "plugins {\n    id 'com.android.application'\n}\n\nandroid {\n    namespace 'nisargpatel.deadreckoning'\n    compileSdk 35\n\n    defaultConfig {\n        applicationId \"nisargpatel.deadreckoning\"\n        minSdk 26\n        targetSdk 35\n        versionCode 2\n        versionName \"2.0\"\n    }\n\n    buildTypes {\n  ",
+      "cached_chars": 1632,
+      "cached_tokens_est": 408,
+      "last_action": "edited",
+      "last_ts": "2026-04-27T13:38:13.194560+00:00",
+      "edited_count": 2
+    },
+    "app/proguard-rules.pro": {
+      "last_action": "edited",
+      "last_ts": "2026-04-27T13:38:13.194576+00:00",
+      "edited_count": 2
+    },
+    "app/src/main/java/nisargpatel/deadreckoning/gis/PrjParser.java": {
+      "last_action": "edited",
+      "last_ts": "2026-04-27T13:29:55.467166+00:00",
+      "edited_count": 1
+    },
+    "app/src/main/java/nisargpatel/deadreckoning/gis/ShapefileReader.java": {
+      "last_action": "edited",
+      "last_ts": "2026-04-27T13:29:55.467176+00:00",
+      "edited_count": 1
+    },
+    "app/src/main/java/nisargpatel/deadreckoning/gis/ShapefileOverlay.java": {
+      "last_action": "edited",
+      "last_ts": "2026-04-27T13:29:55.467185+00:00",
+      "edited_count": 1
+    },
+    "app/src/main/java/nisargpatel/deadreckoning/gis/LayerControlSheet.java": {
+      "last_action": "edited",
+      "last_ts": "2026-04-27T13:52:36.085003+00:00",
+      "edited_count": 3
+    },
+    "app/src/main/res/layout/sheet_layers.xml": {
+      "last_action": "edited",
+      "last_ts": "2026-04-27T13:52:36.085019+00:00",
+      "edited_count": 3
+    },
+    "app/src/main/res/values/strings.xml": {
+      "last_action": "edited",
+      "last_ts": "2026-04-27T13:52:36.085028+00:00",
+      "edited_count": 3
+    },
+    "app/src/main/java/nisargpatel/deadreckoning/gis/MBTilesArchive.java": {
+      "last_action": "edited",
+      "last_ts": "2026-04-27T13:38:13.194587+00:00",
+      "edited_count": 1
+    },
+    "app/src/main/java/nisargpatel/deadreckoning/gis/GeoKeyReader.java": {
+      "last_action": "edited",
+      "last_ts": "2026-04-27T13:38:13.194597+00:00",
+      "edited_count": 1
+    },
+    "app/src/main/java/nisargpatel/deadreckoning/gis/GeoTiffImporter.java": {
+      "last_action": "edited",
+      "last_ts": "2026-04-27T13:38:13.194605+00:00",
+      "edited_count": 1
+    },
+    "app/src/main/java/nisargpatel/deadreckoning/gis/RasterOverlay.java": {
+      "last_action": "edited",
+      "last_ts": "2026-04-27T13:38:13.194615+00:00",
+      "edited_count": 1
+    },
+    "app/src/main/java/nisargpatel/deadreckoning/gis/BoundingBoxOverlay.java": {
+      "last_action": "edited",
+      "last_ts": "2026-04-27T13:52:36.084968+00:00",
+      "edited_count": 1
+    },
+    "app/src/main/java/nisargpatel/deadreckoning/gis/OfflineTileDownloader.java": {
+      "last_action": "edited",
+      "last_ts": "2026-04-27T13:52:36.084986+00:00",
+      "edited_count": 1
+    }
+  },
+  "actions": [
+    {
+      "ts": 1777296158,
+      "kind": "retrieve",
+      "payload": {
+        "kind": "retrieve",
+        "query": "resume previous tasks refactor slices"
+      }
+    },
+    {
+      "ts": 1777296158,
+      "kind": "continue_retrieve",
+      "payload": {
+        "kind": "continue_retrieve",
+        "query": "resume previous tasks refactor slices"
+      }
+    },
+    {
+      "ts": 1777296595,
+      "kind": "register_edit",
+      "payload": {
+        "kind": "register_edit"
+      }
+    },
+    {
+      "ts": 1777297093,
+      "kind": "register_edit",
+      "payload": {
+        "kind": "register_edit"
+      }
+    },
+    {
+      "ts": 1777297155,
+      "kind": "retrieve",
+      "payload": {
+        "kind": "retrieve",
+        "query": "last slice raster MBTiles GeoTIFF implementation"
+      }
+    },
+    {
+      "ts": 1777297155,
+      "kind": "continue_retrieve",
+      "payload": {
+        "kind": "continue_retrieve",
+        "query": "last slice raster MBTiles GeoTIFF implementation"
+      }
+    },
+    {
+      "ts": 1777297178,
+      "kind": "read_blocked_reuse_gate",
+      "payload": {
+        "kind": "read_blocked_reuse_gate",
+        "file": "app/src/main/java/nisargpatel/deadreckoning/gis/LayerManager.java",
+        "query": "",
+        "mode": "reuse_gate_blocked"
+      }
+    },
+    {
+      "ts": 1777297179,
+      "kind": "read_blocked_reuse_gate",
+      "payload": {
+        "kind": "read_blocked_reuse_gate",
+        "file": "app/src/main/java/nisargpatel/deadreckoning/gis/LayerControlSheet.java",
+        "query": "",
+        "mode": "reuse_gate_blocked"
+      }
+    },
+    {
+      "ts": 1777297181,
+      "kind": "read_cache_hit",
+      "payload": {
+        "kind": "read_cache_hit",
+        "file": "add_tech_spec.md",
+        "query": "offline tile download bounding box slice H",
+        "mode": "cache_hit",
+        "response_chars": 300
+      }
+    },
+    {
+      "ts": 1777297956,
+      "kind": "register_edit",
+      "payload": {
+        "kind": "register_edit"
+      }
+    },
+    {
+      "ts": 1777298226,
+      "kind": "retrieve",
+      "payload": {
+        "kind": "retrieve",
+        "query": "test app GPS pocket compass battery use cases"
+      }
+    },
+    {
+      "ts": 1777298226,
+      "kind": "continue_retrieve",
+      "payload": {
+        "kind": "continue_retrieve",
+        "query": "test app GPS pocket compass battery use cases"
+      }
+    }
+  ],
+  "decisions": [
+    {
+      "ts": 1777296595,
+      "summary": "Slice F: Shapefile import + Proj4j EPSG reprojection",
+      "files": [
+        "app/build.gradle",
+        "app/proguard-rules.pro",
+        "app/src/main/java/nisargpatel/deadreckoning/gis/PrjParser.java",
+        "app/src/main/java/nisargpatel/deadreckoning/gis/ShapefileReader.java",
+        "app/src/main/java/nisargpatel/deadreckoning/gis/ShapefileOverlay.java",
+        "app/src/main/java/nisargpatel/deadreckoning/gis/LayerControlSheet.java",
+        "app/src/main/java/nisargpatel/deadreckoning/activity/MapFragment.java",
+        "app/src/main/res/layout/sheet_layers.xml",
+        "app/src/main/res/values/strings.xml"
+      ],
+      "scope": "global"
+    },
+    {
+      "ts": 1777297093,
+      "summary": "Slice G: MBTiles + GeoTIFF raster import",
+      "files": [
+        "app/build.gradle",
+        "app/proguard-rules.pro",
+        "app/src/main/java/nisargpatel/deadreckoning/gis/MBTilesArchive.java",
+        "app/src/main/java/nisargpatel/deadreckoning/gis/GeoKeyReader.java",
+        "app/src/main/java/nisargpatel/deadreckoning/gis/GeoTiffImporter.java",
+        "app/src/main/java/nisargpatel/deadreckoning/gis/RasterOverlay.java",
+        "app/src/main/java/nisargpatel/deadreckoning/gis/LayerManager.java",
+        "app/src/main/java/nisargpatel/deadreckoning/gis/LayerControlSheet.java",
+        "app/src/main/res/layout/sheet_layers.xml",
+        "app/src/main/res/values/strings.xml"
+      ],
+      "scope": "global"
+    },
+    {
+      "ts": 1777297956,
+      "summary": "Slice H: offline tile download with draggable bounding-box UI",
+      "files": [
+        "app/src/main/java/nisargpatel/deadreckoning/gis/BoundingBoxOverlay.java",
+        "app/src/main/java/nisargpatel/deadreckoning/gis/OfflineTileDownloader.java",
+        "app/src/main/java/nisargpatel/deadreckoning/gis/LayerManager.java",
+        "app/src/main/java/nisargpatel/deadreckoning/gis/LayerControlSheet.java",
+        "app/src/main/java/nisargpatel/deadreckoning/activity/MapFragment.java",
+        "app/src/main/res/layout/sheet_layers.xml",
+        "app/src/main/res/values/strings.xml"
+      ],
+      "scope": "global"
+    }
+  ]
+}

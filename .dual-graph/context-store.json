@@ -1,0 +1,836 @@
+[
+  {
+    "type": "decision",
+    "content": "Slice H DONE: BoundingBoxOverlay drag UI + OfflineTileDownloader MBTiles writer",
+    "tags": [
+      "slice",
+      "offline",
+      "mbtiles",
+      "download",
+      "bounding-box"
+    ],
+    "files": [
+      "app/src/main/java/nisargpatel/deadreckoning/gis/BoundingBoxOverlay.java",
+      "app/src/main/java/nisargpatel/deadreckoning/gis/OfflineTileDownloader.java",
+      "app/src/main/java/nisargpatel/deadreckoning/gis/LayerManager.java",
+      "app/src/main/java/nisargpatel/deadreckoning/gis/LayerControlSheet.java",
+      "app/src/main/java/nisargpatel/deadreckoning/activity/MapFragment.java"
+    ],
+    "date": "2026-04-27"
+  },
+  {
+    "id": "mem:1777296600205",
+    "kind": "next",
+    "content": "Slice G: MBTiles + TIF/JP2 raster import remains",
+    "tags": [
+      "refactor",
+      "gis"
+    ],
+    "files": [
+      "app/src/main/java/nisargpatel/deadreckoning/gis/"
+    ],
+    "file_path": "app/src/main/java/nisargpatel/deadreckoning/gis/",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-04-27",
+    "created_epoch": 1777240800,
+    "updated_at": "2026-04-27",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [],
+    "evidence": {}
+  },
+  {
+    "id": "mem:1777296180442",
+    "kind": "query_association",
+    "content": "Queried during: slice E IGN BRGM WMTS WMS WFS connector",
+    "tags": [
+      "slice",
+      "ign",
+      "brgm",
+      "wmts",
+      "wms",
+      "wfs",
+      "connector"
+    ],
+    "files": [
+      "add_tech_spec.md"
+    ],
+    "file_path": "add_tech_spec.md",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-04-27T13:23:00.442437+00:00",
+    "created_epoch": 1777296180,
+    "updated_at": "2026-04-27T13:23:00.442445+00:00",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [
+      "slice E IGN BRGM WMTS WMS WFS connector"
+    ],
+    "evidence": {
+      "source": "graph_read",
+      "anchor_mode": "file",
+      "session_epoch": 1777295902
+    }
+  },
+  {
+    "id": "mem:1777296192066",
+    "kind": "query_association",
+    "content": "Queried during: WMTS WMS tile layer IGN BRGM map",
+    "tags": [
+      "wmts",
+      "wms",
+      "tile",
+      "layer",
+      "ign",
+      "brgm",
+      "map"
+    ],
+    "files": [
+      "app/src/main/java/nisargpatel/deadreckoning/activity/MapFragment.java"
+    ],
+    "file_path": "app/src/main/java/nisargpatel/deadreckoning/activity/MapFragment.java",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-04-27T13:23:12.066827+00:00",
+    "created_epoch": 1777296192,
+    "updated_at": "2026-04-27T13:23:12.066841+00:00",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [
+      "WMTS WMS tile layer IGN BRGM map"
+    ],
+    "evidence": {
+      "source": "graph_read",
+      "anchor_mode": "file",
+      "session_epoch": 1777295902
+    }
+  },
+  {
+    "id": "mem:1777296210220",
+    "kind": "query_association",
+    "content": "Queried during: IGN BRGM WMTS WMS layer management",
+    "tags": [
+      "ign",
+      "brgm",
+      "wmts",
+      "wms",
+      "layer",
+      "management"
+    ],
+    "files": [
+      "app/src/main/java/nisargpatel/deadreckoning/gis/LayerManager.java"
+    ],
+    "file_path": "app/src/main/java/nisargpatel/deadreckoning/gis/LayerManager.java",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-04-27T13:23:30.220103+00:00",
+    "created_epoch": 1777296210,
+    "updated_at": "2026-04-27T13:23:30.220110+00:00",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [
+      "IGN BRGM WMTS WMS layer management"
+    ],
+    "evidence": {
+      "source": "graph_read",
+      "anchor_mode": "file",
+      "session_epoch": 1777295902
+    }
+  },
+  {
+    "id": "mem:1777296227760",
+    "kind": "query_association",
+    "content": "Queried during: dependencies shapefile proj mbtile",
+    "tags": [
+      "dependencies",
+      "shapefile",
+      "proj",
+      "mbtile"
+    ],
+    "files": [
+      "app/build.gradle"
+    ],
+    "file_path": "app/build.gradle",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-04-27T13:23:47.760113+00:00",
+    "created_epoch": 1777296227,
+    "updated_at": "2026-04-27T13:23:47.760122+00:00",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [
+      "dependencies shapefile proj mbtile"
+    ],
+    "evidence": {
+      "source": "graph_read",
+      "anchor_mode": "file",
+      "session_epoch": 1777295902
+    }
+  },
+  {
+    "id": "mem:1777296595471",
+    "kind": "edit_observation",
+    "content": "Edited during active session",
+    "tags": [
+      "slice",
+      "shapefile",
+      "import",
+      "proj4j",
+      "epsg",
+      "reprojection",
+      "mbtiles",
+      "geotiff",
+      "raster",
+      "offline"
+    ],
+    "files": [
+      "app/src/main/res/values/strings.xml"
+    ],
+    "file_path": "app/src/main/res/values/strings.xml",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-04-27T13:29:55.471545+00:00",
+    "created_epoch": 1777296595,
+    "updated_at": "2026-04-27T13:52:36.092664+00:00",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [],
+    "evidence": {
+      "source": "graph_register_edit",
+      "recent_action_kinds": [],
+      "recent_queries": [],
+      "edited": true
+    }
+  },
+  {
+    "id": "mem:1777296595470",
+    "kind": "edit_observation",
+    "content": "Edited during active session",
+    "tags": [
+      "slice",
+      "shapefile",
+      "import",
+      "proj4j",
+      "epsg",
+      "reprojection",
+      "offline",
+      "tile",
+      "download",
+      "draggable"
+    ],
+    "files": [
+      "app/src/main/java/nisargpatel/deadreckoning/activity/MapFragment.java"
+    ],
+    "file_path": "app/src/main/java/nisargpatel/deadreckoning/activity/MapFragment.java",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-04-27T13:29:55.470518+00:00",
+    "created_epoch": 1777296595,
+    "updated_at": "2026-04-27T13:52:36.090308+00:00",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [],
+    "evidence": {
+      "source": "graph_register_edit",
+      "recent_action_kinds": [],
+      "recent_queries": [],
+      "edited": true
+    }
+  },
+  {
+    "id": "mem:1777296595469",
+    "kind": "edit_observation",
+    "content": "Edited during active session",
+    "tags": [
+      "slice",
+      "shapefile",
+      "import",
+      "proj4j",
+      "epsg",
+      "reprojection"
+    ],
+    "files": [
+      "app/src/main/java/nisargpatel/deadreckoning/gis/ShapefileOverlay.java"
+    ],
+    "file_path": "app/src/main/java/nisargpatel/deadreckoning/gis/ShapefileOverlay.java",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-04-27T13:29:55.469603+00:00",
+    "created_epoch": 1777296595,
+    "updated_at": "2026-04-27T13:29:55.469608+00:00",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [],
+    "evidence": {
+      "source": "graph_register_edit",
+      "recent_action_kinds": [],
+      "recent_queries": [],
+      "edited": true
+    }
+  },
+  {
+    "id": "mem:1777296595468",
+    "kind": "edit_observation",
+    "content": "Edited during active session",
+    "tags": [
+      "slice",
+      "shapefile",
+      "import",
+      "proj4j",
+      "epsg",
+      "reprojection"
+    ],
+    "files": [
+      "app/src/main/java/nisargpatel/deadreckoning/gis/PrjParser.java"
+    ],
+    "file_path": "app/src/main/java/nisargpatel/deadreckoning/gis/PrjParser.java",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-04-27T13:29:55.468731+00:00",
+    "created_epoch": 1777296595,
+    "updated_at": "2026-04-27T13:29:55.468737+00:00",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [],
+    "evidence": {
+      "source": "graph_register_edit",
+      "recent_action_kinds": [],
+      "recent_queries": [],
+      "edited": true
+    }
+  },
+  {
+    "id": "mem:1777296595467",
+    "kind": "edit_observation",
+    "content": "Edited during active session",
+    "tags": [
+      "slice",
+      "shapefile",
+      "import",
+      "proj4j",
+      "epsg",
+      "reprojection",
+      "mbtiles",
+      "geotiff",
+      "raster"
+    ],
+    "files": [
+      "app/build.gradle"
+    ],
+    "file_path": "app/build.gradle",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-04-27T13:29:55.467959+00:00",
+    "created_epoch": 1777296595,
+    "updated_at": "2026-04-27T13:38:13.195552+00:00",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [],
+    "evidence": {
+      "source": "graph_register_edit",
+      "recent_action_kinds": [],
+      "recent_queries": [],
+      "edited": true
+    }
+  },
+  {
+    "id": "mem:1777296595467",
+    "kind": "decision",
+    "content": "Slice F: Shapefile import + Proj4j EPSG reprojection",
+    "tags": [
+      "slice",
+      "shapefile",
+      "import",
+      "proj4j",
+      "epsg",
+      "reprojection"
+    ],
+    "files": [
+      "app/build.gradle",
+      "app/proguard-rules.pro",
+      "app/src/main/java/nisargpatel/deadreckoning/gis/PrjParser.java",
+      "app/src/main/java/nisargpatel/deadreckoning/gis/ShapefileReader.java",
+      "app/src/main/java/nisargpatel/deadreckoning/gis/ShapefileOverlay.java",
+      "app/src/main/java/nisargpatel/deadreckoning/gis/LayerControlSheet.java",
+      "app/src/main/java/nisargpatel/deadreckoning/activity/MapFragment.java",
+      "app/src/main/res/layout/sheet_layers.xml",
+      "app/src/main/res/values/strings.xml"
+    ],
+    "file_path": "app/build.gradle",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-04-27T13:29:55.467386+00:00",
+    "created_epoch": 1777296595,
+    "updated_at": "2026-04-27T13:29:55.467391+00:00",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [],
+    "evidence": {
+      "window_sec": 120,
+      "recent_action_kinds": [],
+      "recent_queries": []
+    }
+  },
+  {
+    "id": "mem:1777296595468",
+    "kind": "edit_observation",
+    "content": "Edited during active session",
+    "tags": [
+      "slice",
+      "shapefile",
+      "import",
+      "proj4j",
+      "epsg",
+      "reprojection",
+      "mbtiles",
+      "geotiff",
+      "raster"
+    ],
+    "files": [
+      "app/proguard-rules.pro"
+    ],
+    "file_path": "app/proguard-rules.pro",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-04-27T13:29:55.468342+00:00",
+    "created_epoch": 1777296595,
+    "updated_at": "2026-04-27T13:38:13.196255+00:00",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [],
+    "evidence": {
+      "source": "graph_register_edit",
+      "recent_action_kinds": [],
+      "recent_queries": [],
+      "edited": true
+    }
+  },
+  {
+    "id": "mem:1777296595469",
+    "kind": "edit_observation",
+    "content": "Edited during active session",
+    "tags": [
+      "slice",
+      "shapefile",
+      "import",
+      "proj4j",
+      "epsg",
+      "reprojection"
+    ],
+    "files": [
+      "app/src/main/java/nisargpatel/deadreckoning/gis/ShapefileReader.java"
+    ],
+    "file_path": "app/src/main/java/nisargpatel/deadreckoning/gis/ShapefileReader.java",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-04-27T13:29:55.469135+00:00",
+    "created_epoch": 1777296595,
+    "updated_at": "2026-04-27T13:29:55.469140+00:00",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [],
+    "evidence": {
+      "source": "graph_register_edit",
+      "recent_action_kinds": [],
+      "recent_queries": [],
+      "edited": true
+    }
+  },
+  {
+    "id": "mem:1777296595470",
+    "kind": "edit_observation",
+    "content": "Edited during active session",
+    "tags": [
+      "slice",
+      "shapefile",
+      "import",
+      "proj4j",
+      "epsg",
+      "reprojection",
+      "mbtiles",
+      "geotiff",
+      "raster",
+      "offline"
+    ],
+    "files": [
+      "app/src/main/java/nisargpatel/deadreckoning/gis/LayerControlSheet.java"
+    ],
+    "file_path": "app/src/main/java/nisargpatel/deadreckoning/gis/LayerControlSheet.java",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-04-27T13:29:55.470050+00:00",
+    "created_epoch": 1777296595,
+    "updated_at": "2026-04-27T13:52:36.089182+00:00",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [],
+    "evidence": {
+      "source": "graph_register_edit",
+      "recent_action_kinds": [],
+      "recent_queries": [],
+      "edited": true
+    }
+  },
+  {
+    "id": "mem:1777296595471",
+    "kind": "edit_observation",
+    "content": "Edited during active session",
+    "tags": [
+      "slice",
+      "shapefile",
+      "import",
+      "proj4j",
+      "epsg",
+      "reprojection",
+      "mbtiles",
+      "geotiff",
+      "raster",
+      "offline"
+    ],
+    "files": [
+      "app/src/main/res/layout/sheet_layers.xml"
+    ],
+    "file_path": "app/src/main/res/layout/sheet_layers.xml",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-04-27T13:29:55.471008+00:00",
+    "created_epoch": 1777296595,
+    "updated_at": "2026-04-27T13:52:36.091701+00:00",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [],
+    "evidence": {
+      "source": "graph_register_edit",
+      "recent_action_kinds": [],
+      "recent_queries": [],
+      "edited": true
+    }
+  },
+  {
+    "id": "mem:1777297093199",
+    "kind": "edit_observation",
+    "content": "Edited during active session",
+    "tags": [
+      "slice",
+      "mbtiles",
+      "geotiff",
+      "raster",
+      "import"
+    ],
+    "files": [
+      "app/src/main/java/nisargpatel/deadreckoning/gis/RasterOverlay.java"
+    ],
+    "file_path": "app/src/main/java/nisargpatel/deadreckoning/gis/RasterOverlay.java",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-04-27T13:38:13.199027+00:00",
+    "created_epoch": 1777297093,
+    "updated_at": "2026-04-27T13:38:13.199032+00:00",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [],
+    "evidence": {
+      "source": "graph_register_edit",
+      "recent_action_kinds": [],
+      "recent_queries": [],
+      "edited": true
+    }
+  },
+  {
+    "id": "mem:1777297093197",
+    "kind": "edit_observation",
+    "content": "Edited during active session",
+    "tags": [
+      "slice",
+      "mbtiles",
+      "geotiff",
+      "raster",
+      "import"
+    ],
+    "files": [
+      "app/src/main/java/nisargpatel/deadreckoning/gis/GeoKeyReader.java"
+    ],
+    "file_path": "app/src/main/java/nisargpatel/deadreckoning/gis/GeoKeyReader.java",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-04-27T13:38:13.197618+00:00",
+    "created_epoch": 1777297093,
+    "updated_at": "2026-04-27T13:38:13.197624+00:00",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [],
+    "evidence": {
+      "source": "graph_register_edit",
+      "recent_action_kinds": [],
+      "recent_queries": [],
+      "edited": true
+    }
+  },
+  {
+    "id": "mem:1777297093194",
+    "kind": "decision",
+    "content": "Slice G: MBTiles + GeoTIFF raster import",
+    "tags": [
+      "slice",
+      "mbtiles",
+      "geotiff",
+      "raster",
+      "import"
+    ],
+    "files": [
+      "app/build.gradle",
+      "app/proguard-rules.pro",
+      "app/src/main/java/nisargpatel/deadreckoning/gis/MBTilesArchive.java",
+      "app/src/main/java/nisargpatel/deadreckoning/gis/GeoKeyReader.java",
+      "app/src/main/java/nisargpatel/deadreckoning/gis/GeoTiffImporter.java",
+      "app/src/main/java/nisargpatel/deadreckoning/gis/RasterOverlay.java",
+      "app/src/main/java/nisargpatel/deadreckoning/gis/LayerManager.java",
+      "app/src/main/java/nisargpatel/deadreckoning/gis/LayerControlSheet.java",
+      "app/src/main/res/layout/sheet_layers.xml",
+      "app/src/main/res/values/strings.xml"
+    ],
+    "file_path": "app/build.gradle",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-04-27T13:38:13.194847+00:00",
+    "created_epoch": 1777297093,
+    "updated_at": "2026-04-27T13:38:13.194853+00:00",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [],
+    "evidence": {
+      "window_sec": 120,
+      "recent_action_kinds": [],
+      "recent_queries": []
+    }
+  },
+  {
+    "id": "mem:1777297093196",
+    "kind": "edit_observation",
+    "content": "Edited during active session",
+    "tags": [
+      "slice",
+      "mbtiles",
+      "geotiff",
+      "raster",
+      "import"
+    ],
+    "files": [
+      "app/src/main/java/nisargpatel/deadreckoning/gis/MBTilesArchive.java"
+    ],
+    "file_path": "app/src/main/java/nisargpatel/deadreckoning/gis/MBTilesArchive.java",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-04-27T13:38:13.196917+00:00",
+    "created_epoch": 1777297093,
+    "updated_at": "2026-04-27T13:38:13.196922+00:00",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [],
+    "evidence": {
+      "source": "graph_register_edit",
+      "recent_action_kinds": [],
+      "recent_queries": [],
+      "edited": true
+    }
+  },
+  {
+    "id": "mem:1777297093198",
+    "kind": "edit_observation",
+    "content": "Edited during active session",
+    "tags": [
+      "slice",
+      "mbtiles",
+      "geotiff",
+      "raster",
+      "import"
+    ],
+    "files": [
+      "app/src/main/java/nisargpatel/deadreckoning/gis/GeoTiffImporter.java"
+    ],
+    "file_path": "app/src/main/java/nisargpatel/deadreckoning/gis/GeoTiffImporter.java",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-04-27T13:38:13.198312+00:00",
+    "created_epoch": 1777297093,
+    "updated_at": "2026-04-27T13:38:13.198316+00:00",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [],
+    "evidence": {
+      "source": "graph_register_edit",
+      "recent_action_kinds": [],
+      "recent_queries": [],
+      "edited": true
+    }
+  },
+  {
+    "id": "mem:1777297093199",
+    "kind": "edit_observation",
+    "content": "Edited during active session",
+    "tags": [
+      "slice",
+      "mbtiles",
+      "geotiff",
+      "raster",
+      "import",
+      "offline",
+      "tile",
+      "download",
+      "draggable",
+      "bounding"
+    ],
+    "files": [
+      "app/src/main/java/nisargpatel/deadreckoning/gis/LayerManager.java"
+    ],
+    "file_path": "app/src/main/java/nisargpatel/deadreckoning/gis/LayerManager.java",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-04-27T13:38:13.199758+00:00",
+    "created_epoch": 1777297093,
+    "updated_at": "2026-04-27T13:52:36.088218+00:00",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [],
+    "evidence": {
+      "source": "graph_register_edit",
+      "recent_action_kinds": [],
+      "recent_queries": [],
+      "edited": true
+    }
+  },
+  {
+    "id": "mem:1777297181533",
+    "kind": "query_association",
+    "content": "Queried during: offline tile download bounding box slice H",
+    "tags": [
+      "offline",
+      "tile",
+      "download",
+      "bounding",
+      "box",
+      "slice"
+    ],
+    "files": [
+      "add_tech_spec.md"
+    ],
+    "file_path": "add_tech_spec.md",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-04-27T13:39:41.533602+00:00",
+    "created_epoch": 1777297181,
+    "updated_at": "2026-04-27T13:39:41.533611+00:00",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [
+      "offline tile download bounding box slice H"
+    ],
+    "evidence": {
+      "source": "graph_read",
+      "anchor_mode": "file",
+      "session_epoch": 1777295902
+    }
+  },
+  {
+    "id": "mem:1777297956087",
+    "kind": "edit_observation",
+    "content": "Edited during active session",
+    "tags": [
+      "slice",
+      "offline",
+      "tile",
+      "download",
+      "draggable",
+      "bounding",
+      "box"
+    ],
+    "files": [
+      "app/src/main/java/nisargpatel/deadreckoning/gis/OfflineTileDownloader.java"
+    ],
+    "file_path": "app/src/main/java/nisargpatel/deadreckoning/gis/OfflineTileDownloader.java",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-04-27T13:52:36.087292+00:00",
+    "created_epoch": 1777297956,
+    "updated_at": "2026-04-27T13:52:36.087298+00:00",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [],
+    "evidence": {
+      "source": "graph_register_edit",
+      "recent_action_kinds": [],
+      "recent_queries": [],
+      "edited": true
+    }
+  },
+  {
+    "id": "mem:1777297956085",
+    "kind": "decision",
+    "content": "Slice H: offline tile download with draggable bounding-box UI",
+    "tags": [
+      "slice",
+      "offline",
+      "tile",
+      "download",
+      "draggable",
+      "bounding",
+      "box"
+    ],
+    "files": [
+      "app/src/main/java/nisargpatel/deadreckoning/gis/BoundingBoxOverlay.java",
+      "app/src/main/java/nisargpatel/deadreckoning/gis/OfflineTileDownloader.java",
+      "app/src/main/java/nisargpatel/deadreckoning/gis/LayerManager.java",
+      "app/src/main/java/nisargpatel/deadreckoning/gis/LayerControlSheet.java",
+      "app/src/main/java/nisargpatel/deadreckoning/activity/MapFragment.java",
+      "app/src/main/res/layout/sheet_layers.xml",
+      "app/src/main/res/values/strings.xml"
+    ],
+    "file_path": "app/src/main/java/nisargpatel/deadreckoning/gis/BoundingBoxOverlay.java",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-04-27T13:52:36.085279+00:00",
+    "created_epoch": 1777297956,
+    "updated_at": "2026-04-27T13:52:36.085285+00:00",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [],
+    "evidence": {
+      "window_sec": 120,
+      "recent_action_kinds": [],
+      "recent_queries": []
+    }
+  },
+  {
+    "id": "mem:1777297956086",
+    "kind": "edit_observation",
+    "content": "Edited during active session",
+    "tags": [
+      "slice",
+      "offline",
+      "tile",
+      "download",
+      "draggable",
+      "bounding",
+      "box"
+    ],
+    "files": [
+      "app/src/main/java/nisargpatel/deadreckoning/gis/BoundingBoxOverlay.java"
+    ],
+    "file_path": "app/src/main/java/nisargpatel/deadreckoning/gis/BoundingBoxOverlay.java",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-04-27T13:52:36.086369+00:00",
+    "created_epoch": 1777297956,
+    "updated_at": "2026-04-27T13:52:36.086376+00:00",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [],
+    "evidence": {
+      "source": "graph_register_edit",
+      "recent_action_kinds": [],
+      "recent_queries": [],
+      "edited": true
+    }
+  }
+]

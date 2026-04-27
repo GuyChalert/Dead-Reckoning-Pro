@@ -28,7 +28,67 @@
       "WebFetch(domain:consent.google.com)",
       "Bash(rtk git *)",
       "Bash(rtk wc *)",
-      "Bash(rtk proxy *)"
+      "Bash(rtk proxy *)",
+      "mcp__dual-graph__graph_continue",
+      "mcp__dual-graph__graph_read",
+      "mcp__dual-graph__graph_register_edit",
+      "mcp__dual-graph__graph_add_memory",
+      "Bash(./gradlew compileDebugJavaWithJavac)",
+      "Bash(./gradlew assembleDebug *)",
+      "Bash(pkg install *)",
+      "Bash(rtk df *)",
+      "Bash(mkdir -p ~/android-sdk/cmdline-tools)",
+      "Read(//data/data/com.termux/files/home/downloads/**)",
+      "Bash(rtk wget *)",
+      "Read(//data/data/com.termux/files/home/android-sdk/cmdline-tools/**)",
+      "Bash(unzip -q ~/downloads/cmdline-tools.zip)",
+      "Bash(mv cmdline-tools *)",
+      "Read(//tmp/**)",
+      "Bash(cp ~/.gradle/caches/modules-2/files-2.1/org.osmdroid/osmdroid-android/6.1.20/9e32a3531525ab4caa023da7144549efaa9e69bb/osmdroid-android-6.1.20.aar .)",
+      "Bash(unzip -p osmdroid-android-6.1.20.aar classes.jar)",
+      "Bash(jar tf *)",
+      "Bash(mkdir -p ~/tmp_osm)",
+      "Bash(cp ~/.gradle/caches/modules-2/files-2.1/org.osmdroid/osmdroid-android/6.1.20/9e32a3531525ab4caa023da7144549efaa9e69bb/osmdroid-android-6.1.20.aar ~/tmp_osm/)",
+      "Read(//data/data/com.termux/files/home/**)",
+      "Bash(unzip -q osmdroid-android-6.1.20.aar)",
+      "Bash(unzip -q classes.jar -d classes_extracted)",
+      "Bash(javap *)",
+      "Bash(unzip -q ~/.gradle/caches/modules-2/files-2.1/mil.nga/tiff/3.0.0/8e904ca2930112ec16c8d5df104323ad742d8c8a/tiff-3.0.0.jar -d tiff_extracted)"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/bin/bash \"/data/data/com.termux/files/home/code/Dead-Reckoning-Pro/.dual-graph/prime.sh\""
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/bin/bash \"/data/data/com.termux/files/home/code/Dead-Reckoning-Pro/.dual-graph/prime.sh\""
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/bin/bash \"/data/data/com.termux/files/home/code/Dead-Reckoning-Pro/.dual-graph/stop.sh\""
+          }
+        ]
+      }
     ]
   }
 }
