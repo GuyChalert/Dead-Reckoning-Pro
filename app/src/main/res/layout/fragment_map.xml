@@ -214,8 +214,8 @@
         android:id="@+id/manualTurnControls"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="end|center_vertical"
-        android:layout_marginEnd="16dp"
+        android:layout_gravity="start|center_vertical"
+        android:layout_marginStart="16dp"
         android:orientation="vertical"
         android:visibility="gone">
 

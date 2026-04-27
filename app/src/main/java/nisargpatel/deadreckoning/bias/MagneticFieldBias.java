@@ -1,6 +1,5 @@
 package nisargpatel.deadreckoning.bias;
 
-import org.ejml.ops.CommonOps;
 import org.ejml.simple.SimpleMatrix;
 
 import nisargpatel.deadreckoning.extra.ExtraFunctions;
@@ -99,8 +98,7 @@ public class MagneticFieldBias {
         SimpleMatrix M_XTX = new SimpleMatrix(XTX);
         SimpleMatrix M_XTY = new SimpleMatrix(XTY);
 
-        SimpleMatrix M_XTX_Inverse = new SimpleMatrix(new double[4][4]);
-        CommonOps.invert(M_XTX.getMatrix(), M_XTX_Inverse.getMatrix());
+        SimpleMatrix M_XTX_Inverse = M_XTX.invert();
 
         SimpleMatrix M_B = M_XTX_Inverse.mult(M_XTY);
 

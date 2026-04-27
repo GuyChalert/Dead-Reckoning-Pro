@@ -2,7 +2,7 @@ package nisargpatel.deadreckoning.extra;
 
 import android.content.SharedPreferences;
 
-import org.ejml.data.DenseMatrix64F;
+import org.ejml.data.DMatrixRMaj;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -173,7 +173,7 @@ public final class ExtraFunctions {
 //        return floatArray;
 //    }
 
-    public static float[][] denseMatrixToArray(DenseMatrix64F matrix) {
+    public static float[][] denseMatrixToArray(DMatrixRMaj matrix) {
         float array[][] = new float[matrix.getNumRows()][matrix.getNumCols()];
         for (int row = 0; row < matrix.getNumRows(); row++)
             for (int col = 0; col < matrix.getNumCols(); col++)

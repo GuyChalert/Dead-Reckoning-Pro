@@ -173,7 +173,7 @@ public class DeadReckoningEngine {
                     break;
             }
 
-            if (detected) {
+            if (detected && !stepCounter.isStationary()) {
                 updatePosition();
                 stepsSinceLastTurn++;
             }

@@ -88,4 +88,44 @@
         android:text="@string/layer_add_custom"
         app:icon="@drawable/ic_layers" />
 
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnImportShapefile"
+        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="@string/shapefile_import_btn" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnImportMBTiles"
+        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="@string/mbtiles_import_btn" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnImportGeoTiff"
+        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="@string/geotiff_import_btn" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="?attr/colorControlNormal"
+        android:alpha="0.2"
+        android:layout_marginTop="12dp"
+        android:layout_marginBottom="4dp" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnDownloadRegion"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="@string/offline_download_btn"
+        app:icon="@android:drawable/stat_sys_download" />
+
 </LinearLayout>

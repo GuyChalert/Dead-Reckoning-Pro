@@ -1147,8 +1147,254 @@ public class MapFragment extends Fragment implements SensorEventListener {
     // ------------------------------------------------------------------
 
     private void openLayerControl() {
-        LayerControlSheet.newInstance(layerManager)
+        LayerControlSheet.newInstance(layerManager, mapView, this::enterDownloadMode)
             .show(getChildFragmentManager(), "layers");
+    }
+
+    // ------------------------------------------------------------------
+    // Slice H: offline tile download with bounding-box UI
+    // ------------------------------------------------------------------
+
+    private nisargpatel.deadreckoning.gis.BoundingBoxOverlay bboxOverlay;
+    private android.view.View downloadBar;
+
+    private void enterDownloadMode() {
+        if (mapView == null) return;
+
+        // Shrink current viewport by 20% for initial bbox
+        org.osmdroid.util.BoundingBox vp = mapView.getBoundingBox();
+        double latPad = (vp.getLatNorth() - vp.getLatSouth()) * 0.1;
+        double lonPad = (vp.getLonEast()  - vp.getLonWest())  * 0.1;
+        org.osmdroid.util.BoundingBox initial = new org.osmdroid.util.BoundingBox(
+            vp.getLatNorth() - latPad, vp.getLonEast() - lonPad,
+            vp.getLatSouth() + latPad, vp.getLonWest() + lonPad);
+
+        float density = requireContext().getResources().getDisplayMetrics().density;
+        bboxOverlay = new nisargpatel.deadreckoning.gis.BoundingBoxOverlay(initial, density);
+        mapView.getOverlays().add(bboxOverlay);
+        mapView.invalidate();
+
+        showDownloadBar();
+    }
+
+    private void showDownloadBar() {
+        android.widget.LinearLayout bar = new android.widget.LinearLayout(requireContext());
+        bar.setOrientation(android.widget.LinearLayout.VERTICAL);
+        bar.setPadding(24, 16, 24, 16);
+        bar.setBackgroundColor(android.graphics.Color.argb(220, 30, 30, 30));
+
+        android.widget.TextView hint = new android.widget.TextView(requireContext());
+        hint.setText(R.string.offline_download_hint);
+        hint.setTextColor(android.graphics.Color.WHITE);
+        hint.setTextSize(13f);
+        bar.addView(hint);
+
+        android.widget.LinearLayout btns = new android.widget.LinearLayout(requireContext());
+        btns.setOrientation(android.widget.LinearLayout.HORIZONTAL);
+        btns.setPadding(0, 12, 0, 0);
+
+        com.google.android.material.button.MaterialButton btnConfigure =
+            new com.google.android.material.button.MaterialButton(requireContext());
+        btnConfigure.setText(R.string.offline_configure_btn);
+        btnConfigure.setOnClickListener(v -> showDownloadConfigDialog());
+
+        com.google.android.material.button.MaterialButton btnCancel =
+            new com.google.android.material.button.MaterialButton(
+                requireContext(),
+                null,
+                com.google.android.material.R.attr.materialButtonOutlinedStyle);
+        btnCancel.setText(R.string.offline_cancel_btn);
+        btnCancel.setTextColor(android.graphics.Color.WHITE);
+        btnCancel.setOnClickListener(v -> exitDownloadMode());
+
+        android.widget.LinearLayout.LayoutParams lp =
+            new android.widget.LinearLayout.LayoutParams(0,
+                android.view.ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+        lp.setMarginEnd((int)(8 * requireContext().getResources().getDisplayMetrics().density));
+        btns.addView(btnConfigure, lp);
+        btns.addView(btnCancel,
+            new android.widget.LinearLayout.LayoutParams(0,
+                android.view.ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        bar.addView(btns);
+
+        android.widget.FrameLayout.LayoutParams barLp =
+            new android.widget.FrameLayout.LayoutParams(
+                android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                android.view.ViewGroup.LayoutParams.WRAP_CONTENT);
+        barLp.gravity = android.view.Gravity.BOTTOM;
+
+        downloadBar = bar;
+        ((android.view.ViewGroup) requireView()).addView(bar, barLp);
+    }
+
+    private void exitDownloadMode() {
+        if (bboxOverlay != null) {
+            mapView.getOverlays().remove(bboxOverlay);
+            bboxOverlay = null;
+            mapView.invalidate();
+        }
+        if (downloadBar != null) {
+            ((android.view.ViewGroup) requireView()).removeView(downloadBar);
+            downloadBar = null;
+        }
+    }
+
+    @SuppressWarnings("deprecation")
+    private void showDownloadConfigDialog() {
+        if (bboxOverlay == null) return;
+
+        java.util.List<nisargpatel.deadreckoning.gis.MapLayer> activeLayers =
+            layerManager.getLayers();
+
+        // Filter to only online (WMS/WMTS) layers that have a real endpoint
+        java.util.List<nisargpatel.deadreckoning.gis.MapLayer> downloadable = new java.util.ArrayList<>();
+        for (nisargpatel.deadreckoning.gis.MapLayer l : activeLayers) {
+            if (l.getEndpointUrl() != null && !l.getEndpointUrl().isEmpty()) {
+                downloadable.add(l);
+            }
+        }
+
+        if (downloadable.isEmpty()) {
+            android.widget.Toast.makeText(requireContext(),
+                R.string.offline_no_layers, android.widget.Toast.LENGTH_LONG).show();
+            return;
+        }
+
+        org.osmdroid.util.BoundingBox bbox = bboxOverlay.getBoundingBox();
+        int currentZoom = (int) mapView.getZoomLevelDouble();
+        int maxZoomCap  = Math.min(18, currentZoom + 3);
+
+        // Build dialog layout
+        android.widget.LinearLayout layout = new android.widget.LinearLayout(requireContext());
+        layout.setOrientation(android.widget.LinearLayout.VERTICAL);
+        int pad = (int)(16 * requireContext().getResources().getDisplayMetrics().density);
+        layout.setPadding(pad, pad, pad, 0);
+
+        // Layer picker
+        android.widget.TextView layerLabel = new android.widget.TextView(requireContext());
+        layerLabel.setText(R.string.offline_pick_layer);
+        layout.addView(layerLabel);
+
+        String[] layerNames = new String[downloadable.size()];
+        for (int i = 0; i < downloadable.size(); i++) layerNames[i] = downloadable.get(i).getName();
+        android.widget.Spinner layerSpinner = new android.widget.Spinner(requireContext());
+        android.widget.ArrayAdapter<String> spinnerAdp = new android.widget.ArrayAdapter<>(
+            requireContext(), android.R.layout.simple_spinner_dropdown_item, layerNames);
+        layerSpinner.setAdapter(spinnerAdp);
+        layout.addView(layerSpinner);
+
+        // Max zoom slider
+        android.widget.TextView zoomLabel = new android.widget.TextView(requireContext());
+        zoomLabel.setText(getString(R.string.offline_zoom_max_label, maxZoomCap));
+        layout.addView(zoomLabel);
+
+        android.widget.SeekBar zoomBar = new android.widget.SeekBar(requireContext());
+        zoomBar.setMax(maxZoomCap - currentZoom);
+        zoomBar.setProgress(zoomBar.getMax());
+
+        // Tile count label
+        android.widget.TextView tileCountLabel = new android.widget.TextView(requireContext());
+        long initialCount = nisargpatel.deadreckoning.gis.OfflineTileDownloader.tileCount(
+            bbox, currentZoom, maxZoomCap);
+        tileCountLabel.setText(getString(R.string.offline_tile_count, initialCount));
+        tileCountLabel.setPadding(0, 8, 0, 0);
+
+        zoomBar.setOnSeekBarChangeListener(new android.widget.SeekBar.OnSeekBarChangeListener() {
+            @Override public void onProgressChanged(android.widget.SeekBar sb, int progress, boolean fromUser) {
+                int maxZ = currentZoom + progress;
+                zoomLabel.setText(getString(R.string.offline_zoom_max_label, maxZ));
+                long count = nisargpatel.deadreckoning.gis.OfflineTileDownloader.tileCount(
+                    bbox, currentZoom, maxZ);
+                tileCountLabel.setText(getString(R.string.offline_tile_count, count));
+            }
+            @Override public void onStartTrackingTouch(android.widget.SeekBar sb) {}
+            @Override public void onStopTrackingTouch(android.widget.SeekBar sb) {}
+        });
+        layout.addView(zoomBar);
+        layout.addView(tileCountLabel);
+
+        new android.app.AlertDialog.Builder(requireContext())
+            .setTitle(R.string.offline_download_btn)
+            .setView(layout)
+            .setPositiveButton(android.R.string.ok, (d, w) -> {
+                int chosenMaxZoom = currentZoom + zoomBar.getProgress();
+                nisargpatel.deadreckoning.gis.MapLayer chosenLayer =
+                    downloadable.get(layerSpinner.getSelectedItemPosition());
+                long count = nisargpatel.deadreckoning.gis.OfflineTileDownloader.tileCount(
+                    bbox, currentZoom, chosenMaxZoom);
+                if (count > nisargpatel.deadreckoning.gis.OfflineTileDownloader.MAX_TILES) {
+                    android.widget.Toast.makeText(requireContext(),
+                        getString(R.string.offline_too_many, count,
+                            nisargpatel.deadreckoning.gis.OfflineTileDownloader.MAX_TILES),
+                        android.widget.Toast.LENGTH_LONG).show();
+                    return;
+                }
+                startOfflineDownload(chosenLayer, currentZoom, chosenMaxZoom, bbox, (int) count);
+            })
+            .setNegativeButton(R.string.cancel, null)
+            .show();
+    }
+
+    private void startOfflineDownload(nisargpatel.deadreckoning.gis.MapLayer layer,
+                                      int minZoom, int maxZoom,
+                                      org.osmdroid.util.BoundingBox bbox, int totalTiles) {
+        org.osmdroid.tileprovider.tilesource.OnlineTileSourceBase source =
+            layerManager.getTileSourceForLayer(layer.getId());
+        if (source == null) {
+            android.widget.Toast.makeText(requireContext(),
+                getString(R.string.offline_download_error, "Source unavailable"),
+                android.widget.Toast.LENGTH_LONG).show();
+            return;
+        }
+
+        exitDownloadMode();
+
+        android.widget.Toast.makeText(requireContext(),
+            getString(R.string.offline_download_start, totalTiles),
+            android.widget.Toast.LENGTH_SHORT).show();
+
+        String fileName = "offline_" + layer.getId() + "_z" + minZoom + "-" + maxZoom + ".mbtiles";
+        java.io.File outFile = new java.io.File(requireContext().getCacheDir(), fileName);
+        String displayName   = layer.getName() + " (offline z" + maxZoom + ")";
+
+        java.util.concurrent.ExecutorService exec = java.util.concurrent.Executors.newSingleThreadExecutor();
+        exec.execute(() -> nisargpatel.deadreckoning.gis.OfflineTileDownloader.download(
+            source, bbox, minZoom, maxZoom, outFile,
+            new nisargpatel.deadreckoning.gis.OfflineTileDownloader.Callback() {
+                private int lastReportedPct = -1;
+                @Override public void onProgress(int done, int total) {
+                    int pct = total > 0 ? (done * 100 / total) : 0;
+                    int bucket = pct / 10; // report every 10%
+                    if (bucket != lastReportedPct) {
+                        lastReportedPct = bucket;
+                        if (mapView != null) mapView.post(() ->
+                            android.widget.Toast.makeText(requireContext(),
+                                getString(R.string.offline_download_progress, done, total),
+                                android.widget.Toast.LENGTH_SHORT).show());
+                    }
+                }
+                @Override public void onDone(java.io.File out) {
+                    try {
+                        layerManager.loadMBTilesFromFile(out, displayName);
+                        if (mapView != null) mapView.post(() ->
+                            android.widget.Toast.makeText(requireContext(),
+                                getString(R.string.offline_download_done, displayName),
+                                android.widget.Toast.LENGTH_LONG).show());
+                    } catch (java.io.IOException e) {
+                        if (mapView != null) mapView.post(() ->
+                            android.widget.Toast.makeText(requireContext(),
+                                getString(R.string.offline_download_error, e.getMessage()),
+                                android.widget.Toast.LENGTH_LONG).show());
+                    }
+                }
+                @Override public void onError(Exception e) {
+                    if (mapView != null) mapView.post(() ->
+                        android.widget.Toast.makeText(requireContext(),
+                            getString(R.string.offline_download_error, e.getMessage()),
+                            android.widget.Toast.LENGTH_LONG).show());
+                }
+            }));
+        exec.shutdown();
     }
 
     // ------------------------------------------------------------------

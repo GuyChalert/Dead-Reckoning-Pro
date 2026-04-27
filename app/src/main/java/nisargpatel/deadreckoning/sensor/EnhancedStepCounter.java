@@ -28,6 +28,9 @@ public class EnhancedStepCounter {
     private static final int    ZUPT_WINDOW  = 30;
     private static final double ZUPT_VAR_MAX = 0.04; // m²/s⁴
 
+    // Gait continuity: max interval between consecutive steps before resetting cadence
+    private static final long STEP_MAX_INTERVAL_NS = 2_500_000_000L; // 2.5 s
+
     private double weinbergK = WEINBERG_K_DEFAULT;
     private boolean useWeinberg = true;
 
@@ -93,13 +96,21 @@ public class EnhancedStepCounter {
         } else {
             if (acceleration < STEP_THRESHOLD_LOW) {
                 if (timestamp - lastStepTime > STEP_MIN_TIME_NS) {
+                    // Gait continuity: only count if a previous step occurred within 2.5 s.
+                    // Isolated spikes (device rotation, handling) are skipped; lastStepTime
+                    // is still updated so the *next* genuine step starts the cadence correctly.
+                    boolean inWalkingCadence = (lastStepTime > 0)
+                            && (timestamp - lastStepTime < STEP_MAX_INTERVAL_NS);
                     lastStepTime = timestamp;
-                    stepCount++;
                     isPeakFound = false;
-                    updateStrideFromWeinberg();
                     stepWindowMax = 0;
                     stepWindowMin = Double.MAX_VALUE;
-                    return true;
+                    if (inWalkingCadence) {
+                        stepCount++;
+                        updateStrideFromWeinberg();
+                        return true;
+                    }
+                    return false;
                 }
             }
         }

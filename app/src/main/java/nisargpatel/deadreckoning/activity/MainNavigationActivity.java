@@ -371,13 +371,13 @@ public class MainNavigationActivity extends AppCompatActivity implements SensorE
                 updatePathOnMap();
             }
 
-            if (startPosition == null && accuracy < 10) {
+            if (startPosition == null && accuracy < 20) {
                 startPosition = gpsPoint;
                 mapView.getController().animateTo(startPosition);
             }
         }
 
-        if (!isTracking && accuracy < 10) {
+        if (!isTracking && accuracy < 20) {
             currentPosition = gpsPoint;
         }
     }

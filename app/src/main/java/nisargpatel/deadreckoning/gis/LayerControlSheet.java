@@ -2,6 +2,7 @@ package nisargpatel.deadreckoning.gis;
 
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
+import android.net.Uri;
 import android.os.Bundle;
 import android.text.InputType;
 import android.view.LayoutInflater;
@@ -16,6 +17,8 @@ import android.widget.RadioGroup;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -24,7 +27,11 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment;
 import com.google.android.material.button.MaterialButton;
 
+import org.osmdroid.views.MapView;
+
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import nisargpatel.deadreckoning.R;
 
@@ -34,12 +41,34 @@ import nisargpatel.deadreckoning.R;
  */
 public class LayerControlSheet extends BottomSheetDialogFragment {
 
+    /** Called when the user requests to start the offline region download UI. */
+    public interface DownloadCallback {
+        void onDownloadRegionRequested();
+    }
+
     private LayerManager layerManager;
+    private MapView mapView;
+    private DownloadCallback downloadCallback;
     private LayerAdapter adapter;
 
-    public static LayerControlSheet newInstance(LayerManager manager) {
+    private final ActivityResultLauncher<String[]> pickZip =
+            registerForActivityResult(new ActivityResultContracts.OpenDocument(),
+                    uri -> { if (uri != null) importShapefile(uri); });
+
+    private final ActivityResultLauncher<String[]> pickMBTiles =
+            registerForActivityResult(new ActivityResultContracts.OpenDocument(),
+                    uri -> { if (uri != null) importMBTiles(uri); });
+
+    private final ActivityResultLauncher<String[]> pickGeoTiff =
+            registerForActivityResult(new ActivityResultContracts.OpenDocument(),
+                    uri -> { if (uri != null) importGeoTiff(uri); });
+
+    public static LayerControlSheet newInstance(LayerManager manager, MapView mapView,
+                                                DownloadCallback downloadCb) {
         LayerControlSheet sheet = new LayerControlSheet();
-        sheet.layerManager = manager;
+        sheet.layerManager      = manager;
+        sheet.mapView           = mapView;
+        sheet.downloadCallback  = downloadCb;
         return sheet;
     }
 
@@ -87,6 +116,102 @@ public class LayerControlSheet extends BottomSheetDialogFragment {
         // --- add custom button
         MaterialButton btnAdd = view.findViewById(R.id.btnAddLayer);
         if (btnAdd != null) btnAdd.setOnClickListener(v -> showAddLayerDialog());
+
+        // --- import shapefile button
+        MaterialButton btnShp = view.findViewById(R.id.btnImportShapefile);
+        if (btnShp != null) btnShp.setOnClickListener(v ->
+                pickZip.launch(new String[]{"application/zip", "application/octet-stream"}));
+
+        // --- import MBTiles button
+        MaterialButton btnMbt = view.findViewById(R.id.btnImportMBTiles);
+        if (btnMbt != null) btnMbt.setOnClickListener(v ->
+                pickMBTiles.launch(new String[]{"application/octet-stream", "*/*"}));
+
+        // --- import GeoTIFF button
+        MaterialButton btnTif = view.findViewById(R.id.btnImportGeoTiff);
+        if (btnTif != null) btnTif.setOnClickListener(v ->
+                pickGeoTiff.launch(new String[]{"image/tiff", "application/octet-stream", "*/*"}));
+
+        // --- download offline region button
+        MaterialButton btnDownload = view.findViewById(R.id.btnDownloadRegion);
+        if (btnDownload != null) btnDownload.setOnClickListener(v -> {
+            dismiss();
+            if (downloadCallback != null) downloadCallback.onDownloadRegionRequested();
+        });
+    }
+
+    // ------------------------------------------------------------------ shapefile import
+
+    private void importShapefile(Uri uri) {
+        if (mapView == null) return;
+        runInBackground(() -> {
+            try {
+                ShapefileOverlay.load(requireContext(), uri, mapView);
+                mapView.post(() -> Toast.makeText(requireContext(),
+                        R.string.shapefile_imported, Toast.LENGTH_SHORT).show());
+            } catch (Exception e) {
+                mapView.post(() -> Toast.makeText(requireContext(),
+                        getString(R.string.shapefile_error, e.getMessage()),
+                        Toast.LENGTH_LONG).show());
+            }
+        });
+    }
+
+    // ------------------------------------------------------------------ MBTiles import
+
+    private void importMBTiles(Uri uri) {
+        String name = resolveDisplayName(uri, "mbtiles");
+        runInBackground(() -> {
+            try {
+                layerManager.importMBTiles(uri, name);
+                if (mapView != null) mapView.post(() -> {
+                    List<MapLayer> current = layerManager.getLayers();
+                    adapter.notifyItemInserted(current.size() - 1);
+                    Toast.makeText(requireContext(),
+                            getString(R.string.mbtiles_imported, name), Toast.LENGTH_SHORT).show();
+                });
+            } catch (Exception e) {
+                if (mapView != null) mapView.post(() ->
+                        Toast.makeText(requireContext(),
+                                getString(R.string.mbtiles_error, e.getMessage()),
+                                Toast.LENGTH_LONG).show());
+            }
+        });
+    }
+
+    // ------------------------------------------------------------------ GeoTIFF import
+
+    private void importGeoTiff(Uri uri) {
+        runInBackground(() -> {
+            try {
+                layerManager.importGeoTiff(uri);
+                if (mapView != null) mapView.post(() ->
+                        Toast.makeText(requireContext(),
+                                R.string.geotiff_imported, Toast.LENGTH_SHORT).show());
+            } catch (Exception e) {
+                if (mapView != null) mapView.post(() ->
+                        Toast.makeText(requireContext(),
+                                getString(R.string.geotiff_error, e.getMessage()),
+                                Toast.LENGTH_LONG).show());
+            }
+        });
+    }
+
+    // ------------------------------------------------------------------ utilities
+
+    private void runInBackground(Runnable r) {
+        ExecutorService exec = Executors.newSingleThreadExecutor();
+        exec.execute(r);
+        exec.shutdown();
+    }
+
+    private String resolveDisplayName(Uri uri, String fallback) {
+        try (android.database.Cursor c = requireContext().getContentResolver().query(
+                uri, new String[]{android.provider.OpenableColumns.DISPLAY_NAME},
+                null, null, null)) {
+            if (c != null && c.moveToFirst()) return c.getString(0);
+        } catch (Exception ignored) { }
+        return fallback;
     }
 
     // ------------------------------------------------------------------ presets

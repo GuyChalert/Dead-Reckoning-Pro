@@ -1,0 +1,30 @@
+# Gradle build outputs
+.gradle/
+gradle/
+app/build/
+build/
+*gradle*
+
+# Android Studio / IntelliJ
+.idea/
+*.iml
+local.properties
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Dual-graph MCP runtime files (logs, caches, indices)
+.dual-graph/*.log
+.dual-graph/*.jsonl
+.dual-graph/*.json
+.dual-graph/*.bin
+
+# APK outputs (track release APKs separately if needed)
+*.apk
+*.aab
+
+# libraries and third party softwares
+cmdline-tools.zip
+installjava
+local.properties

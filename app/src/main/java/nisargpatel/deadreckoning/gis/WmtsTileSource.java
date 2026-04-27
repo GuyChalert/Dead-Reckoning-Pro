@@ -34,7 +34,7 @@ public class WmtsTileSource extends OnlineTileSourceBase {
             + "?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0"
             + "&LAYER="          + layerName
             + "&STYLE="          + style
-            + "&FORMAT="         + format
+            + "&FORMAT="         + format.replace("/", "%2F")
             + "&TILEMATRIXSET="  + matrixSet
             + "&TILEMATRIX="     + z
             + "&TILEROW="        + y

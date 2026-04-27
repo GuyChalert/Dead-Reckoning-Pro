@@ -16,7 +16,7 @@
 
 ---
 
-## What's New (v2.1 — OnePlus 13 / Underground Optimisation)
+## What's New (v2.001 — OnePlus 13 / Underground Optimisation)
 
 ### Sensor Fixes & Drift Reduction
 
@@ -34,6 +34,14 @@
 - **Weinberg stride model** — `stride = K × (a_max - a_min)^0.25` per step. Stride adapts to walking pace instead of using a fixed 0.75 m constant.
 - **ZUPT (Zero-Velocity Update)** — detects stationary windows (accelerometer variance < 0.04 m²/s⁴). During ZUPT, gyro bias is updated online via slow EMA, tracking thermal drift across a long walk.
 - **Online gyro bias correction** — `GyroscopeBias.updateFromZupt()` runs continuously during stops, compensating temperature-induced drift (relevant for 60+ min underground walks).
+
+### GIS & Map Features (v2.001)
+
+- **Layer manager** — toggle IGN orthophoto, IGN SCAN25 topo, BRGM Géologie 1:50k WMS/WMTS overlays
+- **Shapefile import** — load .shp/.dbf with automatic EPSG reprojection via Proj4j
+- **MBTiles import** — load offline raster tile archives
+- **GeoTIFF import** — load georeferenced raster overlays
+- **Offline tile download** — draw a bounding box on map, download tiles from any active layer
 
 ### Map & UI Features (v2.0)
 
@@ -97,11 +105,6 @@ Both corrections persist and are reapplied when GPS is lost.
 - Android Studio (Hedgehog or later)
 - JDK 17+
 - Android SDK API 26+ (min), API 35 (target)
-
-### Prerequisites
-- Android Studio (Arctic Fox or later recommended)
-- Java JDK 11 or later
-- Android SDK with API 22+ (minimum), API 34 (target)
 
 ### Build Steps
 

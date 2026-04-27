@@ -258,6 +258,30 @@
     <string name="layer_pick_title">Select layer</string>
     <string name="layer_added">Layer added: %s</string>
     <string name="open_layers">Open layer control</string>
+    <string name="shapefile_import_btn">Import Shapefile (.zip)…</string>
+    <string name="shapefile_imported">Shapefile imported</string>
+    <string name="shapefile_error">Import failed: %s</string>
+    <string name="mbtiles_import_btn">Import MBTiles…</string>
+    <string name="mbtiles_imported">MBTiles loaded: %s</string>
+    <string name="mbtiles_error">MBTiles error: %s</string>
+    <string name="geotiff_import_btn">Import GeoTIFF…</string>
+    <string name="geotiff_imported">GeoTIFF imported</string>
+    <string name="geotiff_error">GeoTIFF error: %s</string>
+
+    <!-- Slice H: offline tile download -->
+    <string name="offline_download_btn">Download offline region…</string>
+    <string name="offline_download_hint">Drag the box corners to select region, then tap Configure.</string>
+    <string name="offline_configure_btn">Configure download</string>
+    <string name="offline_cancel_btn">Cancel</string>
+    <string name="offline_pick_layer">Select source layer</string>
+    <string name="offline_no_layers">No active WMS/WMTS layers — add a preset or custom layer first.</string>
+    <string name="offline_zoom_max_label">Max zoom level: %d</string>
+    <string name="offline_tile_count">~%d tiles</string>
+    <string name="offline_too_many">Too many tiles (%d). Reduce region or zoom. Max %d.</string>
+    <string name="offline_download_start">Downloading %d tiles…</string>
+    <string name="offline_download_progress">Downloading: %d / %d</string>
+    <string name="offline_download_done">Offline region saved: %s</string>
+    <string name="offline_download_error">Download failed: %s</string>
 
     <!-- Slice C: distance marking + export -->
     <string name="log_landmark">Log KM Mark</string>

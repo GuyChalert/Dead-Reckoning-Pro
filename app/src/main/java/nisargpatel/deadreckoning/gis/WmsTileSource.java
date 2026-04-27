@@ -43,7 +43,7 @@ public class WmsTileSource extends OnlineTileSourceBase {
             + "?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetMap"
             + "&LAYERS="     + layerName
             + "&STYLES="
-            + "&FORMAT="     + format
+            + "&FORMAT="     + format.replace("/", "%2F")
             + "&SRS=EPSG:3857"
             + "&BBOX="       + bbox
             + "&WIDTH=256&HEIGHT=256&TRANSPARENT=TRUE";
