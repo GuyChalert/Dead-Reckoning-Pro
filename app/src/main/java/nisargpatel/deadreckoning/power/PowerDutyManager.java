@@ -47,6 +47,7 @@ public class PowerDutyManager {
 
     private State   currentState   = State.HANDHELD_MAPPING;
     private boolean trackingActive = false;
+    private boolean torchEnabled   = false; // off by default; enable via settings
     private String  torchCameraId  = null;
 
     public PowerDutyManager(Window window, CameraManager cameraManager) {
@@ -63,6 +64,12 @@ public class PowerDutyManager {
         trackingActive = active;
         if (!active) setTorchSafe(false);
         else if (currentState == State.HANDHELD_MAPPING) setTorchSafe(true);
+    }
+
+    public void setTorchEnabled(boolean enabled) {
+        torchEnabled = enabled;
+        if (!enabled) setTorchSafe(false);
+        else if (trackingActive && currentState == State.HANDHELD_MAPPING) setTorchSafe(true);
     }
 
     /**
@@ -87,7 +94,6 @@ public class PowerDutyManager {
     /** Call from Fragment.onDestroyView() to restore brightness and kill torch. */
     public void release() {
         setTorchSafe(false);
-        mainHandler.post(() -> setBrightness(SCREEN_NORMAL));
     }
 
     // ------------------------------------------------------------------
@@ -96,10 +102,8 @@ public class PowerDutyManager {
 
     private void applyState() {
         if (currentState == State.POCKET_WALKING) {
-            mainHandler.post(() -> setBrightness(SCREEN_DIM));
             setTorchSafe(false);
         } else {
-            mainHandler.post(() -> setBrightness(SCREEN_NORMAL));
             if (trackingActive) setTorchSafe(true);
         }
     }
@@ -112,11 +116,10 @@ public class PowerDutyManager {
 
     private void setTorchSafe(boolean on) {
         if (torchCameraId == null) return;
+        if (on && !torchEnabled) return;
         try {
             cameraManager.setTorchMode(torchCameraId, on);
-        } catch (Exception ignored) {
-            // Torch unavailable or already claimed — ignore silently
-        }
+        } catch (Exception ignored) {}
     }
 
     private void cacheTorchId() {

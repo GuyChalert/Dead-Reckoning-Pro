@@ -4,14 +4,43 @@ import org.ejml.simple.SimpleMatrix;
 
 import nisargpatel.deadreckoning.extra.ExtraFunctions;
 
+/**
+ * Computes an absolute orientation (rotation) matrix from gravity and
+ * magnetic field sensor readings, providing an initial heading reference for
+ * the gyroscope-based dead-reckoning pipeline.
+ *
+ * <p>Sensor data are remapped from Android frame to NED (North-East-Down) via
+ * a fixed rotation before roll/pitch and heading are derived. A 11° magnetic
+ * declination correction is baked into the heading calculation — adjust if
+ * operating in a region with significantly different declination.
+ */
 public final class MagneticFieldOrientation {
 
     private MagneticFieldOrientation() {}
 
+    /** Android→NED frame rotation matrix: sensor x→N, sensor y→E, sensor -z→D. */
     private static SimpleMatrix m_rotationNED = new SimpleMatrix(new double[][]{{0,1,0},
                                                                                 {1,0,0},
                                                                                 {0,0,-1}});
 
+    /**
+     * Builds a complete 3×3 rotation matrix from accelerometer and magnetometer data.
+     *
+     * <ol>
+     *   <li>Rotates both vectors to NED frame.</li>
+     *   <li>Derives roll (r) and pitch (p) from gravity.</li>
+     *   <li>Tilts the bias-corrected magnetic vector by R(r,p).</li>
+     *   <li>Derives heading (h) from the tilt-compensated magnetic vector,
+     *       applying an 11° declination offset.</li>
+     *   <li>Combines R(r,p) × R(h) into the final rotation matrix.</li>
+     * </ol>
+     *
+     * @param G_values Raw accelerometer (gravity) reading [x, y, z] in m/s².
+     * @param M_values Raw (uncalibrated) magnetometer reading [x, y, z] in μT.
+     * @param M_bias   Hard-iron magnetometer bias [x, y, z] in μT, from
+     *                 {@link nisargpatel.deadreckoning.bias.MagneticFieldBias#getBias()}.
+     * @return 3×3 rotation matrix representing the device orientation in NED frame.
+     */
     public static float[][] getOrientationMatrix(float[] G_values, float[] M_values, float[] M_bias) {
 
         //G = Gyroscope, M = Magnetic Field
@@ -81,6 +110,15 @@ public final class MagneticFieldOrientation {
 
     }
 
+    /**
+     * Convenience wrapper that returns only the heading (yaw) angle.
+     *
+     * @param G_values Raw accelerometer reading [x, y, z] in m/s².
+     * @param M_values Raw magnetometer reading [x, y, z] in μT.
+     * @param M_bias   Hard-iron bias [x, y, z] in μT.
+     * @return Heading (yaw) as atan2(R[1][0], R[0][0]) in radians (rad),
+     *         range (−π, π]. 0 rad ≈ North (with 11° declination correction).
+     */
     public static float getHeading(float[] G_values, float[] M_values, float[] M_bias) {
         float[][] orientationMatrix = getOrientationMatrix(G_values, M_values, M_bias);
         return (float) Math.atan2(orientationMatrix[1][0], orientationMatrix[0][0]);
@@ -94,6 +132,15 @@ public final class MagneticFieldOrientation {
 //        return M_biasRemoved;
 //    }
 
+    /**
+     * Subtracts the hard-iron bias from raw magnetometer values.
+     * Only the first three components are used; any additional values
+     * (Android-calculated soft-iron corrections) are ignored.
+     *
+     * @param M_init Raw magnetometer reading [x, y, z, ...] in μT.
+     * @param M_bias Hard-iron bias [x, y, z] in μT.
+     * @return Bias-corrected magnetic field vector [x, y, z] in μT as doubles.
+     */
     private static double[] removeBias(float[] M_init, float[] M_bias) {
         //ignoring the last 3 values of M_init, which are the android-calculated iron biases
         double[] M_biasRemoved = new double[3];

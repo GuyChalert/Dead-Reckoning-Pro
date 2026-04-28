@@ -3,6 +3,7 @@ package nisargpatel.deadreckoning.gis;
 import android.content.Context;
 import android.graphics.Color;
 import android.net.Uri;
+import android.provider.DocumentsContract;
 
 import org.locationtech.proj4j.CRSFactory;
 import org.locationtech.proj4j.CoordinateReferenceSystem;
@@ -12,6 +13,7 @@ import org.locationtech.proj4j.ProjCoordinate;
 import org.osmdroid.util.GeoPoint;
 import org.osmdroid.views.MapView;
 import org.osmdroid.views.overlay.Marker;
+import org.osmdroid.views.overlay.Overlay;
 import org.osmdroid.views.overlay.Polygon;
 import org.osmdroid.views.overlay.Polyline;
 
@@ -26,12 +28,9 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 /**
- * Imports a zipped Shapefile (.zip containing .shp + optional .prj) and
- * renders the geometries as osmdroid overlays on the given MapView.
- *
- * All work is done on the calling thread; callers must invoke off the UI thread.
- * After {@link #load(Context, Uri, MapView)} returns, overlays have been posted to
- * the main thread via {@link MapView#post}.
+ * Imports a Shapefile and returns the resulting overlays.
+ * Accepts either a .zip (containing .shp + optional .prj) or a raw .shp file URI.
+ * For raw .shp URIs, tries to find a sibling .prj via DocumentsContract; falls back to WGS84.
  */
 public class ShapefileOverlay {
 
@@ -45,35 +44,47 @@ public class ShapefileOverlay {
             crsFactory.createFromName("epsg:4326");
 
     /**
-     * Load a .zip containing a shapefile and add overlays to the MapView.
+     * Load a shapefile and return overlays. Accepts:
+     *   - .zip URI (containing .shp + optional .prj)
+     *   - raw .shp URI (sibling .prj resolved via DocumentsContract when possible)
      *
-     * @param zipUri URI of a .zip file (via SAF / ACTION_OPEN_DOCUMENT)
-     * @throws IOException on parse or read errors
+     * Must be called off the UI thread.
      */
-    public static void load(Context context, Uri zipUri, MapView mapView) throws IOException {
+    public static List<Overlay> load(Context context, Uri uri, MapView mapView) throws IOException {
         byte[] shpBytes = null;
         String prjWkt   = null;
 
-        // Extract .shp and .prj from the ZIP
-        try (InputStream raw = context.getContentResolver().openInputStream(zipUri);
-             ZipInputStream zis = new ZipInputStream(raw)) {
-            ZipEntry entry;
-            while ((entry = zis.getNextEntry()) != null) {
-                String name = entry.getName().toLowerCase();
-                if (name.endsWith(".shp")) {
-                    shpBytes = zis.readAllBytes();
-                } else if (name.endsWith(".prj")) {
-                    prjWkt = new BufferedReader(
-                            new InputStreamReader(zis, StandardCharsets.UTF_8))
-                            .readLine();
+        String segment = uri.getLastPathSegment();
+        boolean isZip = (segment != null && segment.toLowerCase().endsWith(".zip"))
+                || "application/zip".equals(context.getContentResolver().getType(uri));
+
+        if (isZip) {
+            try (InputStream raw = context.getContentResolver().openInputStream(uri);
+                 ZipInputStream zis = new ZipInputStream(raw)) {
+                ZipEntry entry;
+                while ((entry = zis.getNextEntry()) != null) {
+                    String name = entry.getName().toLowerCase();
+                    if (name.endsWith(".shp")) {
+                        shpBytes = zis.readAllBytes();
+                    } else if (name.endsWith(".prj")) {
+                        prjWkt = new BufferedReader(
+                                new InputStreamReader(zis, StandardCharsets.UTF_8))
+                                .readLine();
+                    }
+                    zis.closeEntry();
                 }
-                zis.closeEntry();
             }
+            if (shpBytes == null) throw new IOException("No .shp file found in ZIP");
+        } else {
+            // Raw .shp file
+            try (InputStream is = context.getContentResolver().openInputStream(uri)) {
+                if (is == null) throw new IOException("Cannot open .shp URI");
+                shpBytes = is.readAllBytes();
+            }
+            // Try to find sibling .prj via DocumentsContract
+            prjWkt = readSiblingPrj(context, uri);
         }
 
-        if (shpBytes == null) throw new IOException("No .shp file found in ZIP");
-
-        // Determine source CRS from .prj (fallback: WGS84 = no reprojection needed)
         int epsg = PrjParser.parseEpsg(prjWkt);
         CoordinateTransform transform = null;
         if (epsg != 4326) {
@@ -81,14 +92,12 @@ public class ShapefileOverlay {
             transform = xfFactory.createTransform(srcCrs, WGS84);
         }
 
-        // Parse geometries
         List<ShapefileReader.Feature> features;
         try (InputStream shpStream = new java.io.ByteArrayInputStream(shpBytes)) {
             features = ShapefileReader.read(shpStream);
         }
 
-        // Convert to osmdroid overlays
-        final List<org.osmdroid.views.overlay.Overlay> overlays = new ArrayList<>();
+        final List<Overlay> overlays = new ArrayList<>();
         final CoordinateTransform xf = transform;
 
         for (ShapefileReader.Feature f : features) {
@@ -124,11 +133,27 @@ public class ShapefileOverlay {
             }
         }
 
-        // Add overlays on the main thread
-        mapView.post(() -> {
-            mapView.getOverlays().addAll(overlays);
-            mapView.invalidate();
-        });
+        return overlays;
+    }
+
+    private static String readSiblingPrj(Context context, Uri shpUri) {
+        if (!"content".equals(shpUri.getScheme())) return null;
+        try {
+            String authority = shpUri.getAuthority();
+            String docId = DocumentsContract.getDocumentId(shpUri);
+            if (docId == null || authority == null) return null;
+            // Replace .shp extension with .prj
+            String prjDocId = docId.replaceAll("(?i)\\.shp$", ".prj");
+            if (prjDocId.equals(docId)) return null;
+            Uri prjUri = DocumentsContract.buildDocumentUri(authority, prjDocId);
+            try (InputStream is = context.getContentResolver().openInputStream(prjUri)) {
+                if (is == null) return null;
+                return new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))
+                        .readLine();
+            }
+        } catch (Exception ignored) {
+            return null;
+        }
     }
 
     private static GeoPoint reproject(double[] xy, CoordinateTransform xf) {

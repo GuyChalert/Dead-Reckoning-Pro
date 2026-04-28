@@ -9,7 +9,7 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
-    <!-- Direction Arrow Indicator - moved to right side -->
+    <!-- Heading Arrow Indicator: blue arrow rotates to show walking direction -->
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/cardDirection"
         android:layout_width="wrap_content"
@@ -17,16 +17,31 @@
         android:layout_gravity="end|top"
         android:layout_marginTop="200dp"
         android:layout_marginEnd="16dp"
-        app:cardCornerRadius="30dp"
+        app:cardCornerRadius="16dp"
         app:cardElevation="8dp">
 
-        <ImageView
-            android:id="@+id/imageDirectionArrow"
-            android:layout_width="50dp"
-            android:layout_height="50dp"
-            android:padding="8dp"
-            android:src="@drawable/ic_arrow_up"
-            app:tint="@color/colorPrimary" />
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:padding="6dp">
+
+            <ImageView
+                android:id="@+id/imageDirectionArrow"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:src="@drawable/ic_arrow_up"
+                app:tint="@color/colorPrimary" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="HDG"
+                android:textColor="@color/textSecondary"
+                android:textSize="9sp" />
+
+        </LinearLayout>
 
     </com.google.android.material.card.MaterialCardView>
 
@@ -38,12 +53,36 @@
         android:padding="12dp">
 
         <com.google.android.material.card.MaterialCardView
+            android:id="@+id/cardStats"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             app:cardCornerRadius="16dp"
             app:cardElevation="4dp">
 
             <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+            <!-- Minimize/expand toggle row -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="end"
+                android:orientation="horizontal">
+
+                <ImageButton
+                    android:id="@+id/buttonMinimizeStats"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="@string/minimize"
+                    android:src="@drawable/ic_arrow_up" />
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/layoutStatsContent"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
@@ -179,6 +218,8 @@
                         android:textSize="12sp" />
 
                 </LinearLayout>
+
+            </LinearLayout>
 
             </LinearLayout>
 

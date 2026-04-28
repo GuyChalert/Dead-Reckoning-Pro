@@ -132,13 +132,18 @@ public class DeadReckoningEngine {
         }
         if (gyro != null) {
             lastRawGyro = gyro;
-            // Apply current bias estimate before feeding to heading estimator
             float[] correctedGyro = new float[]{
                 gyro[0] - gyroBias.getBias()[0],
                 gyro[1] - gyroBias.getBias()[1],
                 gyro[2] - gyroBias.getBias()[2]
             };
             headingEstimator.updateGyroscope(correctedGyro, timestamp);
+            float gyroMag = (float) Math.sqrt(
+                correctedGyro[0] * correctedGyro[0] +
+                correctedGyro[1] * correctedGyro[1] +
+                correctedGyro[2] * correctedGyro[2]);
+            stepCounter.setGyroMagnitude(gyroMag);
+            staticStepCounter.setGyroMagnitude(gyroMag);
         }
 
         // Update heading whenever we have any valid orientation source
@@ -396,6 +401,14 @@ public class DeadReckoningEngine {
         return gpsCalibrator.getCalibrationPointCount();
     }
     
+    public void notifyHardwareStep(long timestampNs) {
+        stepCounter.notifyHardwareStep(timestampNs);
+    }
+
+    public void setHardwareStepDetectorAvailable(boolean available) {
+        stepCounter.setHardwareStepDetectorAvailable(available);
+    }
+
     public void setStrideLength(double meters) {
         stepCounter.setStrideLength(meters);
     }

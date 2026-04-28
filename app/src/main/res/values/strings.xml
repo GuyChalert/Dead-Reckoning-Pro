@@ -267,6 +267,11 @@
     <string name="geotiff_import_btn">Import GeoTIFF…</string>
     <string name="geotiff_imported">GeoTIFF imported</string>
     <string name="geotiff_error">GeoTIFF error: %s</string>
+    <string name="kml_import_btn">Import KML/KMZ…</string>
+    <string name="kml_imported">KML imported</string>
+    <string name="kml_error">KML error: %s</string>
+    <string name="kml_no_content">%s chargé — aucun contenu affiché (liens réseau dynamiques non supportés)</string>
+    <string name="layer_ign_routes">IGN Routes</string>
 
     <!-- Slice H: offline tile download -->
     <string name="offline_download_btn">Download offline region…</string>
@@ -277,11 +282,14 @@
     <string name="offline_no_layers">No active WMS/WMTS layers — add a preset or custom layer first.</string>
     <string name="offline_zoom_max_label">Max zoom level: %d</string>
     <string name="offline_tile_count">~%d tiles</string>
-    <string name="offline_too_many">Too many tiles (%d). Reduce region or zoom. Max %d.</string>
+    <string name="offline_too_many">Too many tiles (%1$d). Reduce region or zoom. Max %2$d.</string>
     <string name="offline_download_start">Downloading %d tiles…</string>
-    <string name="offline_download_progress">Downloading: %d / %d</string>
+    <string name="offline_download_progress">Downloading: %1$d / %2$d</string>
     <string name="offline_download_done">Offline region saved: %s</string>
     <string name="offline_download_error">Download failed: %s</string>
+
+    <string name="minimize">Minimize</string>
+    <string name="expand">Expand</string>
 
     <!-- Slice C: distance marking + export -->
     <string name="log_landmark">Log KM Mark</string>
@@ -293,5 +301,15 @@
     <string name="export_format_title">Export format</string>
     <string name="exported_path">Saved: %s</string>
     <string name="export_error">Export failed: %s</string>
+    <string name="settings_title">Settings</string>
+    <string name="setting_flashlight">Enable flashlight while mapping (handheld mode)</string>
+    <string name="barometer_elevation">Barometer / Elevation</string>
+    <string name="known_altitude_hint">Calibrate to known altitude (m)</string>
+    <string name="calibrate_altitude">Calibrate altitude</string>
+    <string name="manual_elevation_hint">Manual altitude (m)</string>
+    <string name="barometer_calibrated">Altitude calibrated to %.1f m</string>
+    <string name="barometer_no_reading">No pressure reading yet</string>
+    <string name="barometer_reading">Pressure: %1$.1f hPa → Altitude: %2$.1f m</string>
+    <string name="manual_elevation_saved">Manual altitude set to %.1f m</string>
 
 </resources>

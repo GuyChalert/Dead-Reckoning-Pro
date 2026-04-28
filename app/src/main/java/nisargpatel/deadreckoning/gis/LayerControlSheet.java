@@ -50,6 +50,7 @@ public class LayerControlSheet extends BottomSheetDialogFragment {
     private MapView mapView;
     private DownloadCallback downloadCallback;
     private LayerAdapter adapter;
+    private List<MapLayer> adapterLayers;
 
     private final ActivityResultLauncher<String[]> pickZip =
             registerForActivityResult(new ActivityResultContracts.OpenDocument(),
@@ -62,6 +63,10 @@ public class LayerControlSheet extends BottomSheetDialogFragment {
     private final ActivityResultLauncher<String[]> pickGeoTiff =
             registerForActivityResult(new ActivityResultContracts.OpenDocument(),
                     uri -> { if (uri != null) importGeoTiff(uri); });
+
+    private final ActivityResultLauncher<String[]> pickKml =
+            registerForActivityResult(new ActivityResultContracts.OpenDocument(),
+                    uri -> { if (uri != null) importKml(uri); });
 
     public static LayerControlSheet newInstance(LayerManager manager, MapView mapView,
                                                 DownloadCallback downloadCb) {
@@ -85,8 +90,8 @@ public class LayerControlSheet extends BottomSheetDialogFragment {
         RecyclerView rv = view.findViewById(R.id.rvLayers);
         rv.setLayoutManager(new LinearLayoutManager(requireContext()));
 
-        List<MapLayer> layers = layerManager.getLayers();
-        adapter = new LayerAdapter(layers, new LayerAdapter.Listener() {
+        adapterLayers = layerManager.getLayers();
+        adapter = new LayerAdapter(adapterLayers, new LayerAdapter.Listener() {
             @Override
             public void onVisibilityChanged(MapLayer layer, boolean visible) {
                 layerManager.setVisible(layer.getId(), visible);
@@ -98,9 +103,7 @@ public class LayerControlSheet extends BottomSheetDialogFragment {
             @Override
             public void onRemove(MapLayer layer) {
                 layerManager.removeLayer(layer.getId());
-                int idx = layers.indexOf(layer);
-                layers.remove(layer);
-                adapter.notifyItemRemoved(idx);
+                refreshAdapter();
             }
         });
         rv.setAdapter(adapter);
@@ -109,9 +112,11 @@ public class LayerControlSheet extends BottomSheetDialogFragment {
         View chipIgnOrtho  = view.findViewById(R.id.chipIgnOrtho);
         View chipIgnTopo   = view.findViewById(R.id.chipIgnTopo);
         View chipBrgmGeo   = view.findViewById(R.id.chipBrgmGeo);
+        View chipIgnRoutes = view.findViewById(R.id.chipIgnRoutes);
         if (chipIgnOrtho  != null) chipIgnOrtho .setOnClickListener(v -> addPreset("ign_ortho"));
         if (chipIgnTopo   != null) chipIgnTopo  .setOnClickListener(v -> addPreset("ign_topo"));
         if (chipBrgmGeo   != null) chipBrgmGeo  .setOnClickListener(v -> addPreset("brgm_geo"));
+        if (chipIgnRoutes != null) chipIgnRoutes.setOnClickListener(v -> addPreset("ign_routes"));
 
         // --- add custom button
         MaterialButton btnAdd = view.findViewById(R.id.btnAddLayer);
@@ -120,7 +125,7 @@ public class LayerControlSheet extends BottomSheetDialogFragment {
         // --- import shapefile button
         MaterialButton btnShp = view.findViewById(R.id.btnImportShapefile);
         if (btnShp != null) btnShp.setOnClickListener(v ->
-                pickZip.launch(new String[]{"application/zip", "application/octet-stream"}));
+                pickZip.launch(new String[]{"application/zip", "application/octet-stream", "*/*"}));
 
         // --- import MBTiles button
         MaterialButton btnMbt = view.findViewById(R.id.btnImportMBTiles);
@@ -131,6 +136,14 @@ public class LayerControlSheet extends BottomSheetDialogFragment {
         MaterialButton btnTif = view.findViewById(R.id.btnImportGeoTiff);
         if (btnTif != null) btnTif.setOnClickListener(v ->
                 pickGeoTiff.launch(new String[]{"image/tiff", "application/octet-stream", "*/*"}));
+
+        // --- import KML/KMZ button
+        MaterialButton btnKml = view.findViewById(R.id.btnImportKml);
+        if (btnKml != null) btnKml.setOnClickListener(v ->
+                pickKml.launch(new String[]{
+                    "application/vnd.google-earth.kml+xml",
+                    "application/vnd.google-earth.kmz",
+                    "application/octet-stream", "*/*"}));
 
         // --- download offline region button
         MaterialButton btnDownload = view.findViewById(R.id.btnDownloadRegion);
@@ -144,13 +157,17 @@ public class LayerControlSheet extends BottomSheetDialogFragment {
 
     private void importShapefile(Uri uri) {
         if (mapView == null) return;
+        String name = resolveDisplayName(uri, "shapefile");
         runInBackground(() -> {
             try {
-                ShapefileOverlay.load(requireContext(), uri, mapView);
-                mapView.post(() -> Toast.makeText(requireContext(),
-                        R.string.shapefile_imported, Toast.LENGTH_SHORT).show());
+                layerManager.importShapefile(uri, name);
+                if (mapView != null) mapView.post(() -> {
+                    refreshAdapter();
+                    Toast.makeText(requireContext(),
+                            R.string.shapefile_imported, Toast.LENGTH_SHORT).show();
+                });
             } catch (Exception e) {
-                mapView.post(() -> Toast.makeText(requireContext(),
+                if (mapView != null) mapView.post(() -> Toast.makeText(requireContext(),
                         getString(R.string.shapefile_error, e.getMessage()),
                         Toast.LENGTH_LONG).show());
             }
@@ -165,8 +182,7 @@ public class LayerControlSheet extends BottomSheetDialogFragment {
             try {
                 layerManager.importMBTiles(uri, name);
                 if (mapView != null) mapView.post(() -> {
-                    List<MapLayer> current = layerManager.getLayers();
-                    adapter.notifyItemInserted(current.size() - 1);
+                    refreshAdapter();
                     Toast.makeText(requireContext(),
                             getString(R.string.mbtiles_imported, name), Toast.LENGTH_SHORT).show();
                 });
@@ -197,6 +213,33 @@ public class LayerControlSheet extends BottomSheetDialogFragment {
         });
     }
 
+    // ------------------------------------------------------------------ KML/KMZ import
+
+    private void importKml(android.net.Uri uri) {
+        String name = resolveDisplayName(uri, "kml");
+        runInBackground(() -> {
+            try {
+                int count = layerManager.importKml(uri, name);
+                if (mapView != null) mapView.post(() -> {
+                    refreshAdapter();
+                    if (count == 0) {
+                        Toast.makeText(requireContext(),
+                                getString(R.string.kml_no_content, name),
+                                Toast.LENGTH_LONG).show();
+                    } else {
+                        Toast.makeText(requireContext(),
+                                R.string.kml_imported, Toast.LENGTH_SHORT).show();
+                    }
+                });
+            } catch (Exception e) {
+                if (mapView != null) mapView.post(() ->
+                        Toast.makeText(requireContext(),
+                                getString(R.string.kml_error, e.getMessage()),
+                                Toast.LENGTH_LONG).show());
+            }
+        });
+    }
+
     // ------------------------------------------------------------------ utilities
 
     private void runInBackground(Runnable r) {
@@ -221,12 +264,17 @@ public class LayerControlSheet extends BottomSheetDialogFragment {
         for (MapLayer p : presets) {
             if (p.getId().equals(id)) {
                 layerManager.addLayer(p);
-                List<MapLayer> layers = layerManager.getLayers();
-                adapter.notifyItemInserted(layers.size() - 1);
+                refreshAdapter();
                 Toast.makeText(requireContext(), p.getName() + " added", Toast.LENGTH_SHORT).show();
                 return;
             }
         }
+    }
+
+    private void refreshAdapter() {
+        adapterLayers.clear();
+        adapterLayers.addAll(layerManager.getLayers());
+        adapter.notifyDataSetChanged();
     }
 
     // ------------------------------------------------------------------ add custom
@@ -302,8 +350,7 @@ public class LayerControlSheet extends BottomSheetDialogFragment {
                         info.name, info.defaultStyle, fmt,
                         serviceType == LayerType.WMTS ? info.matrixSet : "");
                 layerManager.addLayer(layer);
-                List<MapLayer> current = layerManager.getLayers();
-                adapter.notifyItemInserted(current.size() - 1);
+                refreshAdapter();
                 Toast.makeText(requireContext(),
                     getString(R.string.layer_added, info.toString()),
                     Toast.LENGTH_SHORT).show();

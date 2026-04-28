@@ -16,18 +16,32 @@ public class GyroscopeBias {
     private int trials;
     private float[] gyroBias;
 
+    /** Package-private default constructor; use {@link #GyroscopeBias(int)} in production code. */
     GyroscopeBias() {
         runCount = 0;
         trials = 0;
         gyroBias = new float[3];
     }
 
+    /**
+     * @param trials Number of gyroscope samples to average during static calibration.
+     *               Larger values give a more stable bias estimate at the cost of
+     *               a longer startup hold-still period.
+     */
     public GyroscopeBias(int trials) {
         this();
         this.trials = trials;
     }
 
-    /** Static calibration: call while device is perfectly still. */
+    /**
+     * Accumulates one raw gyroscope reading for static bias estimation.
+     * Call repeatedly while the device is perfectly still.
+     * Uses a running mean to avoid storing all samples.
+     *
+     * @param rawGyroValues Raw sensor values [x, y, z] in rad/s.
+     * @return {@code true} when the required number of {@code trials} has been
+     *         reached and the bias estimate is ready; {@code false} otherwise.
+     */
     public boolean calcBias(float[] rawGyroValues) {
         runCount++;
 
@@ -50,8 +64,12 @@ public class GyroscopeBias {
     }
 
     /**
-     * Online bias update: call only when ZUPT confirms device is stationary.
-     * Any non-zero gyro reading during a stationary window is purely bias.
+     * Online bias update using a slow exponential moving average (α = 0.005).
+     * Call only when ZUPT confirms the device is stationary; any non-zero
+     * gyro reading during a stationary window is purely thermal/drift bias.
+     *
+     * @param rawGyroValues Raw sensor values [x, y, z] in rad/s measured
+     *                      during a confirmed zero-velocity phase.
      */
     public void updateFromZupt(float[] rawGyroValues) {
         gyroBias[0] = (1 - ONLINE_ALPHA) * gyroBias[0] + ONLINE_ALPHA * rawGyroValues[0];

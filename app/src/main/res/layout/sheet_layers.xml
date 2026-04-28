@@ -22,42 +22,59 @@
         android:textSize="12sp"
         android:paddingBottom="4dp" />
 
-    <LinearLayout
+    <HorizontalScrollView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:paddingBottom="12dp">
+        android:paddingBottom="12dp"
+        android:scrollbars="none">
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/chipIgnOrtho"
-            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+        <LinearLayout
             android:layout_width="wrap_content"
-            android:layout_height="36dp"
-            android:text="@string/layer_ign_ortho"
-            android:textSize="11sp"
-            app:cornerRadius="18dp" />
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/chipIgnTopo"
-            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-            android:layout_width="wrap_content"
-            android:layout_height="36dp"
-            android:layout_marginStart="6dp"
-            android:text="@string/layer_ign_topo"
-            android:textSize="11sp"
-            app:cornerRadius="18dp" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/chipIgnOrtho"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:text="@string/layer_ign_ortho"
+                android:textSize="11sp"
+                app:cornerRadius="18dp" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/chipBrgmGeo"
-            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-            android:layout_width="wrap_content"
-            android:layout_height="36dp"
-            android:layout_marginStart="6dp"
-            android:text="@string/layer_brgm_geo"
-            android:textSize="11sp"
-            app:cornerRadius="18dp" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/chipIgnTopo"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:layout_marginStart="6dp"
+                android:text="@string/layer_ign_topo"
+                android:textSize="11sp"
+                app:cornerRadius="18dp" />
 
-    </LinearLayout>
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/chipBrgmGeo"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:layout_marginStart="6dp"
+                android:text="@string/layer_brgm_geo"
+                android:textSize="11sp"
+                app:cornerRadius="18dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/chipIgnRoutes"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:layout_marginStart="6dp"
+                android:text="@string/layer_ign_routes"
+                android:textSize="11sp"
+                app:cornerRadius="18dp" />
+
+        </LinearLayout>
+
+    </HorizontalScrollView>
 
     <View
         android:layout_width="match_parent"
@@ -111,6 +128,14 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
         android:text="@string/geotiff_import_btn" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnImportKml"
+        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="@string/kml_import_btn" />
 
     <View
         android:layout_width="match_parent"

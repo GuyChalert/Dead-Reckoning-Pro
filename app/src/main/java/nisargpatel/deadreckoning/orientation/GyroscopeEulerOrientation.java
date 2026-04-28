@@ -3,10 +3,18 @@ package nisargpatel.deadreckoning.orientation;
 
 import nisargpatel.deadreckoning.extra.ExtraFunctions;
 
-//orientation determined using Euler angles and stored inside of Direction Cosine Matrix
-//this class was created before the importation of EJML, and therefore does not implement it
+/**
+ * Tracks device orientation by integrating gyroscope angular velocities into a
+ * Direction Cosine Matrix (DCM) using Taylor-series Rodrigues rotation.
+ *
+ * <p>Predates the EJML import, so matrix arithmetic is done with
+ * {@link nisargpatel.deadreckoning.extra.ExtraFunctions} helpers.
+ * Sensor axes are remapped from Android convention (x→Y, y→X, -z→Z) to
+ * the North-East-Up INS frame before accumulation.
+ */
 public class GyroscopeEulerOrientation {
 
+    /** 3×3 Direction Cosine Matrix representing current orientation. */
     private float[][] C;
 
     //NEU rotation
@@ -18,15 +26,29 @@ public class GyroscopeEulerOrientation {
 //    Android Sensor -Z --> INS Z
 
 
+    /** Initialises the DCM to the identity matrix (no rotation). */
     public GyroscopeEulerOrientation() {
         C = ExtraFunctions.IDENTITY_MATRIX.clone();
     }
 
+    /**
+     * @param initialOrientation 3×3 rotation matrix to use as the starting orientation,
+     *                           e.g. obtained from a magnetometer-based initialisation.
+     */
     public GyroscopeEulerOrientation(float[][] initialOrientation) {
         this();
         C = initialOrientation.clone();
     }
 
+    /**
+     * Integrates one gyroscope sample into the DCM and returns the updated matrix.
+     * Applies the Android→INS axis remap (sensor x→INS Y, sensor y→INS X,
+     * sensor -z→INS Z) before computing the Rodrigues update.
+     *
+     * @param gyroValues Integrated delta-orientation [x, y, z] in radians (rad)
+     *                   as produced by {@link GyroscopeDeltaOrientation}.
+     * @return Updated 3×3 DCM (clone — caller may modify freely).
+     */
     public float[][] getOrientationMatrix(float[] gyroValues) {
 //        float wX = gyroValues[0];
 //        float wY = gyroValues[1];
@@ -43,11 +65,27 @@ public class GyroscopeEulerOrientation {
         return C.clone();
     }
 
+    /**
+     * Updates the DCM and extracts the yaw (heading) angle.
+     *
+     * @param gyroValue Integrated delta-orientation [x, y, z] in radians (rad).
+     * @return Heading (yaw) angle extracted from DCM entry atan2(C[1][0], C[0][0]),
+     *         in radians (rad), range (−π, π].
+     */
     public float getHeading(float[] gyroValue) {
         getOrientationMatrix(gyroValue);
         return (float) (Math.atan2(C[1][0], C[0][0]));
     }
 
+    /**
+     * Computes the Rodrigues rotation matrix A = I + B·sin(σ)/σ + B²·(1−cos σ)/σ²
+     * using Taylor-series approximations for numerical stability near σ = 0.
+     *
+     * @param wX Angular velocity component X (remapped INS frame) in rad/s.
+     * @param wY Angular velocity component Y (remapped INS frame) in rad/s.
+     * @param wZ Angular velocity component Z (remapped INS frame) in rad/s.
+     * @return 3×3 incremental rotation matrix A.
+     */
     private float[][] calcMatrixA(float wX, float wY, float wZ) {
 
         float[][] A;
@@ -69,6 +107,15 @@ public class GyroscopeEulerOrientation {
         return A;
     }
 
+    /**
+     * Builds the 3×3 skew-symmetric cross-product matrix B from the angular
+     * velocity vector [wX, wY, wZ].
+     *
+     * @param wX Angular velocity X in rad/s.
+     * @param wY Angular velocity Y in rad/s.
+     * @param wZ Angular velocity Z in rad/s.
+     * @return Skew-symmetric matrix B.
+     */
     private float[][] calcMatrixB(float wX, float wY, float wZ) {
 //        return (new float[][]{{0, -wZ, wY},
 //                              {wZ, 0, -wX},
@@ -78,7 +125,13 @@ public class GyroscopeEulerOrientation {
                                 {wY, -wX, 0}});
     }
 
-    //(sin σ) / σ ≈ 1 - (σ^2 / 3!) + (σ^4 / 5!)
+    /**
+     * Taylor-series approximation of sin(σ)/σ used as the scale factor for B.
+     * Approximation: 1 − σ²/3! + σ⁴/5!
+     *
+     * @param sigma Angular velocity magnitude ‖ω‖ in rad/s.
+     * @return Scale factor for B in the Rodrigues formula.
+     */
     private float calcBScaleFactor(float sigma) {
         //return (float) ((1 - Math.cos(sigma)) / Math.pow(sigma, 2));
         float sigmaSqOverThreeFactorial = (float) Math.pow(sigma, 2) / ExtraFunctions.factorial(3);
@@ -86,7 +139,13 @@ public class GyroscopeEulerOrientation {
         return (float) (1.0 - sigmaSqOverThreeFactorial + sigmaToForthOverFiveFactorial);
     }
 
-    //(1 - cos σ) / σ^2 ≈ (1/2) - (σ^2 / 4!) + (σ^4 / 6!)
+    /**
+     * Taylor-series approximation of (1 − cos σ)/σ² used as the scale factor for B².
+     * Approximation: 1/2 − σ²/4! + σ⁴/6!
+     *
+     * @param sigma Angular velocity magnitude ‖ω‖ in rad/s.
+     * @return Scale factor for B² in the Rodrigues formula.
+     */
     private float calcBSqScaleFactor(float sigma) {
         //return (float) (Math.sin(sigma) / sigma);
         float sigmaSqOverFourFactorial = (float) Math.pow(sigma, 2) / ExtraFunctions.factorial(4);
@@ -94,7 +153,12 @@ public class GyroscopeEulerOrientation {
         return (float) (0.5 - sigmaSqOverFourFactorial + sigmaToForthOverSixFactorial);
     }
 
-    //calculate the new DCM depending on the change in orientation
+    /**
+     * Post-multiplies the current DCM by the incremental rotation A,
+     * accumulating the total orientation: C ← C × A.
+     *
+     * @param A 3×3 incremental rotation matrix from {@link #calcMatrixA}.
+     */
     private void calcMatrixC(float[][] A) {
         C = ExtraFunctions.multiplyMatrices(C, A);
     }

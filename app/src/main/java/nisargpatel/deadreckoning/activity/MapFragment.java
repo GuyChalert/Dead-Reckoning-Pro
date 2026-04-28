@@ -28,6 +28,7 @@ import android.widget.Toast;
 
 import nisargpatel.deadreckoning.gis.LayerControlSheet;
 import nisargpatel.deadreckoning.gis.LayerManager;
+import nisargpatel.deadreckoning.gis.NorthArrowOverlay;
 import nisargpatel.deadreckoning.power.PowerDutyManager;
 import nisargpatel.deadreckoning.sensor.PocketStateDetector;
 
@@ -65,6 +66,7 @@ import nisargpatel.deadreckoning.export.TunnelMapExporter;
 import nisargpatel.deadreckoning.model.Marker;
 import nisargpatel.deadreckoning.preferences.TurnModePreferences;
 import nisargpatel.deadreckoning.preferences.StepCounterPreferences;
+import nisargpatel.deadreckoning.sensor.BarometerManager;
 import nisargpatel.deadreckoning.sensor.DeadReckoningEngine;
 import nisargpatel.deadreckoning.sensor.PreciseHeadingEstimator;
 import nisargpatel.deadreckoning.storage.MarkerStorage;
@@ -123,6 +125,9 @@ public class MapFragment extends Fragment implements SensorEventListener {
     private MaterialCardView cardDirection;
     private FrameLayout dialOverlayContainer;
     private DegreeDialView degreeDialView;
+    private android.widget.ImageButton buttonMinimizeStats;
+    private LinearLayout layoutStatsContent;
+    private boolean isStatsMinimized = false;
 
     private LayerManager layerManager;
     private FloatingActionButton fabLayers;
@@ -130,6 +135,9 @@ public class MapFragment extends Fragment implements SensorEventListener {
     private PowerDutyManager dutyManager;
     private PocketStateDetector pocketDetector;
     private Sensor sensorAccelerometer;
+    private Sensor sensorStepDetector;
+    private Sensor sensorPressure;
+    private BarometerManager barometerManager;
     private FrameLayout pocketModeOverlay;
     private TextView pocketTextDistance;
     private TextView pocketTextSteps;
@@ -181,6 +189,7 @@ public class MapFragment extends Fragment implements SensorEventListener {
         initLocation();
         initMap(view);
         layerManager.attach(mapView);
+        mapView.getOverlays().add(new NorthArrowOverlay(requireContext(), mapView));
         initEngine();
         updateTurnModeUI();
         loadMarkers();
@@ -261,6 +270,13 @@ public class MapFragment extends Fragment implements SensorEventListener {
 
         fabLayers = view.findViewById(R.id.fabLayers);
         fabLayers.setOnClickListener(v -> openLayerControl());
+        fabLayers.setOnLongClickListener(v -> { showSettingsDialog(); return true; });
+
+        layoutStatsContent = view.findViewById(R.id.layoutStatsContent);
+        buttonMinimizeStats = view.findViewById(R.id.buttonMinimizeStats);
+        if (buttonMinimizeStats != null) {
+            buttonMinimizeStats.setOnClickListener(v -> toggleStatsPanel());
+        }
 
         fabCenterGPS.setOnClickListener(v -> centerOnGPS());
         
@@ -302,6 +318,16 @@ public class MapFragment extends Fragment implements SensorEventListener {
         }
     }
     
+    private void toggleStatsPanel() {
+        isStatsMinimized = !isStatsMinimized;
+        if (layoutStatsContent != null) {
+            layoutStatsContent.setVisibility(isStatsMinimized ? View.GONE : View.VISIBLE);
+        }
+        if (buttonMinimizeStats != null) {
+            buttonMinimizeStats.setRotation(isStatsMinimized ? 180f : 0f);
+        }
+    }
+
     private void toggleNoGPSMode() {
         forceNoGPSMode = !forceNoGPSMode;
         useGPSForTrace = !forceNoGPSMode;
@@ -445,6 +471,8 @@ public class MapFragment extends Fragment implements SensorEventListener {
         sensorLinearAcceleration = sensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION);
         sensorGameRotationVector = sensorManager.getDefaultSensor(Sensor.TYPE_GAME_ROTATION_VECTOR);
         sensorAccelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+        sensorStepDetector = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_DETECTOR);
+        sensorPressure = sensorManager.getDefaultSensor(Sensor.TYPE_PRESSURE);
     }
 
     private void initPowerDutyManager(View view) {
@@ -457,15 +485,12 @@ public class MapFragment extends Fragment implements SensorEventListener {
         CameraManager cameraManager =
             (CameraManager) requireContext().getSystemService(Context.CAMERA_SERVICE);
         dutyManager = new PowerDutyManager(requireActivity().getWindow(), cameraManager);
+        boolean flashlightEnabled = requireContext()
+                .getSharedPreferences("app_prefs", android.content.Context.MODE_PRIVATE)
+                .getBoolean("pref_flashlight", false);
+        dutyManager.setTorchEnabled(flashlightEnabled);
         dutyManager.addListener(state -> {
-            if (!isAdded()) return;
-            requireActivity().runOnUiThread(() -> {
-                if (state == PowerDutyManager.State.POCKET_WALKING) {
-                    pocketModeOverlay.setVisibility(View.VISIBLE);
-                } else {
-                    pocketModeOverlay.setVisibility(View.GONE);
-                }
-            });
+            // pocketModeOverlay intentionally never shown
         });
     }
 
@@ -487,6 +512,12 @@ public class MapFragment extends Fragment implements SensorEventListener {
         }
         if (sensorAccelerometer != null) {
             sensorManager.registerListener(this, sensorAccelerometer, SensorManager.SENSOR_DELAY_FASTEST);
+        }
+        if (sensorStepDetector != null) {
+            sensorManager.registerListener(this, sensorStepDetector, SensorManager.SENSOR_DELAY_FASTEST);
+        }
+        if (sensorPressure != null && barometerManager != null && barometerManager.isEnabled()) {
+            sensorManager.registerListener(this, sensorPressure, SensorManager.SENSOR_DELAY_NORMAL);
         }
     }
 
@@ -528,6 +559,7 @@ public class MapFragment extends Fragment implements SensorEventListener {
         mapView = view.findViewById(R.id.mapView);
         mapView.setTileSource(TileSourceFactory.MAPNIK);
         mapView.setMultiTouchControls(true);
+        mapView.getOverlayManager().getTilesOverlay().setLoadingBackgroundColor(Color.TRANSPARENT);
         
         RotationGestureOverlay rotationGestureOverlay = new RotationGestureOverlay(requireContext(), mapView);
         rotationGestureOverlay.setEnabled(true);
@@ -591,9 +623,23 @@ public class MapFragment extends Fragment implements SensorEventListener {
 
     private void initEngine() {
         deadReckoningEngine = new DeadReckoningEngine();
+        deadReckoningEngine.setHardwareStepDetectorAvailable(sensorStepDetector != null);
         headingEstimator = new PreciseHeadingEstimator();
         tripStorage = new TripStorage(requireContext());
+        initBarometer();
     }
+
+    private void initBarometer() {
+        barometerManager = new BarometerManager();
+        android.content.SharedPreferences prefs =
+                requireContext().getSharedPreferences("barometer_prefs", android.content.Context.MODE_PRIVATE);
+        barometerManager.setEnabled(prefs.getBoolean("barometer_enabled", true));
+        barometerManager.setManualElevation(prefs.getFloat("manual_elevation_m", 0f));
+        barometerManager.setCalibrationOffset(prefs.getFloat("calibration_offset_m", 0f));
+    }
+
+    /** Expose barometer for CalibrationActivity (accessed via Activity cast). */
+    public BarometerManager getBarometerManager() { return barometerManager; }
 
     public void startTracking() {
         if (!hasLocationPermission()) {
@@ -783,13 +829,28 @@ public class MapFragment extends Fragment implements SensorEventListener {
                             values,
                             event.timestamp
                     );
-                    updateUI();
+                    if (event.timestamp - lastUiUpdateNs >= UI_INTERVAL_NS) {
+                        lastUiUpdateNs = event.timestamp;
+                        updateUI();
+                    }
                 }
                 break;
             case Sensor.TYPE_ACCELEROMETER:
                 if (pocketDetector != null && dutyManager != null) {
                     pocketDetector.update(values);
                     dutyManager.onPocketStateChanged(pocketDetector.getState());
+                }
+                break;
+            case Sensor.TYPE_STEP_DETECTOR:
+                if (deadReckoningEngine != null && isTracking && !isPaused) {
+                    deadReckoningEngine.notifyHardwareStep(event.timestamp);
+                }
+                break;
+            case Sensor.TYPE_PRESSURE:
+                if (barometerManager != null && barometerManager.isEnabled()) {
+                    float hPa = event.values[0];
+                    barometerManager.onPressureReading(hPa);
+                    if (deadReckoningEngine != null) deadReckoningEngine.updateBarometer(hPa);
                 }
                 break;
         }
@@ -945,6 +1006,9 @@ public class MapFragment extends Fragment implements SensorEventListener {
         
         stopLocationUpdates();
     }
+
+    private long lastUiUpdateNs = 0;
+    private static final long UI_INTERVAL_NS = 33_333_333L; // ~30 fps
 
     private boolean isScreenOn = true;
     private final IntentFilter screenStateFilter = new IntentFilter();
@@ -1151,6 +1215,29 @@ public class MapFragment extends Fragment implements SensorEventListener {
             .show(getChildFragmentManager(), "layers");
     }
 
+    private void showSettingsDialog() {
+        android.content.SharedPreferences prefs = requireContext()
+                .getSharedPreferences("app_prefs", android.content.Context.MODE_PRIVATE);
+        boolean flashOn = prefs.getBoolean("pref_flashlight", false);
+
+        android.widget.CheckBox cbFlash = new android.widget.CheckBox(requireContext());
+        cbFlash.setText(R.string.setting_flashlight);
+        cbFlash.setChecked(flashOn);
+        int p = (int)(16 * requireContext().getResources().getDisplayMetrics().density);
+        cbFlash.setPadding(p, p, p, p);
+
+        new android.app.AlertDialog.Builder(requireContext())
+            .setTitle(R.string.settings_title)
+            .setView(cbFlash)
+            .setPositiveButton(android.R.string.ok, (d, w) -> {
+                boolean enabled = cbFlash.isChecked();
+                prefs.edit().putBoolean("pref_flashlight", enabled).apply();
+                if (dutyManager != null) dutyManager.setTorchEnabled(enabled);
+            })
+            .setNegativeButton(R.string.cancel, null)
+            .show();
+    }
+
     // ------------------------------------------------------------------
     // Slice H: offline tile download with bounding-box UI
     // ------------------------------------------------------------------
@@ -1160,6 +1247,7 @@ public class MapFragment extends Fragment implements SensorEventListener {
 
     private void enterDownloadMode() {
         if (mapView == null) return;
+        if (bboxOverlay != null) return; // already in download mode
 
         // Shrink current viewport by 20% for initial bbox
         org.osmdroid.util.BoundingBox vp = mapView.getBoundingBox();
@@ -1246,10 +1334,12 @@ public class MapFragment extends Fragment implements SensorEventListener {
         java.util.List<nisargpatel.deadreckoning.gis.MapLayer> activeLayers =
             layerManager.getLayers();
 
-        // Filter to only online (WMS/WMTS) layers that have a real endpoint
+        // Filter to tile-based layers (WMS/WMTS with endpoints) or the OSM base
         java.util.List<nisargpatel.deadreckoning.gis.MapLayer> downloadable = new java.util.ArrayList<>();
         for (nisargpatel.deadreckoning.gis.MapLayer l : activeLayers) {
-            if (l.getEndpointUrl() != null && !l.getEndpointUrl().isEmpty()) {
+            boolean hasEndpoint = l.getEndpointUrl() != null && !l.getEndpointUrl().isEmpty();
+            boolean isOsmBase   = "osm_base".equals(l.getId());
+            if (hasEndpoint || isOsmBase) {
                 downloadable.add(l);
             }
         }

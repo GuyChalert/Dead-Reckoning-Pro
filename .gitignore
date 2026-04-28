@@ -24,7 +24,16 @@ Thumbs.db
 *.apk
 *.aab
 
-# libraries and third party softwares
+# Libraries and third party softwares
 cmdline-tools.zip
 installjava
 local.properties
+
+# Data providers
+provider/
+
+# Data folders
+shapefile/.dual-graph/
+.dual-graph/
+# Added by code-review-graph
+.code-review-graph/

@@ -1,13 +1,21 @@
 # Bugs
-* steps and distance are STILL accumulating even when at rest while rotating the device: they shall be counted only when deevice is moving
 
-* IGN SCAN25 and BRGM geologie are still not displayed when activated: dive deep into this! BRGM has WMS-C option (http://geoservices.brgm.fr/wms-c.html), WMS/WFS (http://geoservices.brgm.fr/geologie) and KML (https://infoterre.brgm.fr/sites/default/files/upload/kml/kml_geo_1000.kml, https://infoterre.brgm.fr/sites/default/files/upload/kml/kml_geo_50.kml, https://infoterre.brgm.fr/sites/default/files/upload/kml/scan_f_geol50_catalog.kmz, https://infoterre.brgm.fr/sites/default/files/upload/kml/risques.kmz) ; IGN has WMTS (BDTOPO: https://data.geopf.fr/wms-r?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetCapabilities, ), WMS (RGEALTI: https://data.geopf.fr/wmts?SERVICE=WMTS&VERSION=1.0.0&REQUEST=GetCapabilities).
+* app still again too sensitive to device manipulation and still counts steps while at rest: rotating the phone at rest is enough to trigger step and distance count ;  When walking, instantaneous acceleration is measured to above 4 to 5. Find another way to limit step counting while at rest! you may use capabilities of OnePlus 13 to do this.
+
+* still an error with import of kmz (@provider/scan_f_geol50_catalog.kmz) -> screenshot in folder @provider/. It is displayed in the list of active layers but does not display anything on map.
+
+* kml file @provider/kml_geo_50.kml still does not load the more detailed rasters when map is zoomed in. Plus it shows up above position symbol which is then hidden behind -> always move symbols (current position and markers) above all the active layers, inclusing when layers are loaded and unloaded. Last, some tiles are still visible after the layer has been hidden -> when inactivated, a layer shall not leave persistent pixels on the map.
+
+* kmz file @scan_f_geol50_catalog.kmz does not load. Error is in screenshot in folder @/provider.
+
+* north arrow: set a constant location for the north arrow ; make it rotate around its own center when the map rotates ; the last refactors did not change its wrong behavior
+
+* Barometer shall be activated by default to assess elevation ; it shall be possible to turn it off and set elevation to constant user defined value in 'Calibrate' tab ; when barometer is ON, it shall be possible to calibrate it to a known elevation (user defined) in 'Calibrate' tab.
+
+
 
 # New functionalities
-* Add a north symbol to the map which rotates when map is rotated ; tapping on it restore default north up-screen config.
 
-* Add support to load a ropography raster ; reproject in current CRS if needed ; add optional display of contoured topography on map view ; contour step default is 100m but can be modified in sertings ; when the map is zoomed, the step reduces successively to 50m, then 10m then 1m with increasing map zoom ; these contours are precomputed just after TIF import ; the contours resolution depends on map zoom -> several versions of the contours are precomputed at TIF import for quick display later.
+* Add support to load a topography raster (RGEALTI from french IGN) on the fly within screen extent ; reproject in current CRS if needed ; display it as grey shades slopes ; add optional control to compute elevation contours: contour step default is 100m but can be modified in sertings ; when map is zoomed, step reduces successively by factor 2, then 5, then 10 with increasing map zoom level ; these contours are precomputed just after activating their display ; the contours resolution depends on map zoom -> several versions of the contours are precomputed for quick display.
 
-7. Add a tab where a profile of elevation vs walked distance is displayed ; superpose elevation curve from topography is topo raster is available.
-
-8. Barometer is activated by default but this can be xhanger in settings.
+* Add a tab where a profile of elevation vs walked distance is displayed ; superpose elevation curve from topography is topo raster is available.

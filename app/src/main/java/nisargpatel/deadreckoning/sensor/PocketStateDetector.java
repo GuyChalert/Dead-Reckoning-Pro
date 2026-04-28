@@ -20,9 +20,13 @@ public class PocketStateDetector {
     // Window of ~250 ms at 200 Hz
     private static final int    WINDOW           = 50;
     // Pocket bounces produce higher total accel variance than handheld
-    private static final double POCKET_VAR_THRESH = 1.2;  // m²/s⁴
+    // Raised to 3.5 to prevent handheld-walking from triggering pocket mode
+    private static final double POCKET_VAR_THRESH = 3.5;  // m²/s⁴
     // Phone is vertical (pocket) when pitch > this
-    private static final double POCKET_PITCH_MIN_DEG = 35.0;
+    private static final double POCKET_PITCH_MIN_DEG = 55.0;
+    // Require N consecutive same-state reads before switching (prevents flicker per step)
+    private static final int    HYSTERESIS_COUNT = 20;
+    private int hysteresisCounter = 0;
 
     private final Deque<float[]> buf = new ArrayDeque<>();
     private State state = State.HANDHELD_MAPPING;
@@ -60,7 +64,13 @@ public class PocketStateDetector {
         boolean highVar    = totalVar > POCKET_VAR_THRESH;
         boolean phoneUpright = pitch > POCKET_PITCH_MIN_DEG;
 
-        state = (highVar && phoneUpright) ? State.POCKET_WALKING : State.HANDHELD_MAPPING;
+        State candidate = (highVar && phoneUpright) ? State.POCKET_WALKING : State.HANDHELD_MAPPING;
+        if (candidate == state) {
+            hysteresisCounter = 0;
+        } else if (++hysteresisCounter >= HYSTERESIS_COUNT) {
+            state = candidate;
+            hysteresisCounter = 0;
+        }
     }
 
     public synchronized State getState() { return state; }

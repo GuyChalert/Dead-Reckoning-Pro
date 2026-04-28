@@ -7,6 +7,8 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.view.View;
+import android.widget.LinearLayout;
 import android.location.Location;
 import android.os.Bundle;
 import android.widget.Button;
@@ -36,6 +38,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import nisargpatel.deadreckoning.R;
 import nisargpatel.deadreckoning.extra.ExtraFunctions;
 import nisargpatel.deadreckoning.preferences.StepCounterPreferences;
+import nisargpatel.deadreckoning.sensor.BarometerManager;
 import nisargpatel.deadreckoning.sensor.EnhancedStepCounter;
 
 public class CalibrationActivity extends AppCompatActivity implements SensorEventListener {
@@ -89,6 +92,17 @@ public class CalibrationActivity extends AppCompatActivity implements SensorEven
     private boolean useAndroidSteps = false;
     private int androidStepCount = 0;
 
+    // Barometer
+    private static final String BARO_PREFS = "barometer_prefs";
+    private BarometerManager barometerManager;
+    private Sensor sensorPressure;
+    private com.google.android.material.switchmaterial.SwitchMaterial switchBarometer;
+    private TextView textBarometerReading;
+    private LinearLayout layoutBarometerCalibrate;
+    private LinearLayout layoutManualElevation;
+    private com.google.android.material.textfield.TextInputEditText inputKnownAltitude;
+    private com.google.android.material.textfield.TextInputEditText inputManualElevation;
+
     private float[] gravityValues = null;
     private float[] magValues = null;
     private double currentHeading = 0;
@@ -106,6 +120,7 @@ public class CalibrationActivity extends AppCompatActivity implements SensorEven
         initSensors();
         loadSavedCalibration();
         loadStepModeSelection();
+        initBarometerUI();
     }
 
     private void initViews() {
@@ -162,10 +177,81 @@ public class CalibrationActivity extends AppCompatActivity implements SensorEven
         sensorLinearAcceleration = sensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION);
         sensorMagneticField = sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
         sensorGravity = sensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY);
+        sensorPressure = sensorManager.getDefaultSensor(Sensor.TYPE_PRESSURE);
 
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
-        
+
         stepCounter = new EnhancedStepCounter();
+    }
+
+    private void initBarometerUI() {
+        switchBarometer = findViewById(R.id.switchBarometer);
+        textBarometerReading = findViewById(R.id.textBarometerReading);
+        layoutBarometerCalibrate = findViewById(R.id.layoutBarometerCalibrate);
+        layoutManualElevation = findViewById(R.id.layoutManualElevation);
+        inputKnownAltitude = findViewById(R.id.inputKnownAltitude);
+        inputManualElevation = findViewById(R.id.inputManualElevation);
+
+        barometerManager = new BarometerManager();
+        SharedPreferences baroPrefs = getSharedPreferences(BARO_PREFS, MODE_PRIVATE);
+        barometerManager.setEnabled(baroPrefs.getBoolean("barometer_enabled", true));
+        barometerManager.setManualElevation(baroPrefs.getFloat("manual_elevation_m", 0f));
+        barometerManager.setCalibrationOffset(baroPrefs.getFloat("calibration_offset_m", 0f));
+
+        switchBarometer.setChecked(barometerManager.isEnabled());
+        updateBarometerVisibility(barometerManager.isEnabled());
+
+        switchBarometer.setOnCheckedChangeListener((btn, checked) -> {
+            barometerManager.setEnabled(checked);
+            getSharedPreferences(BARO_PREFS, MODE_PRIVATE).edit()
+                    .putBoolean("barometer_enabled", checked).apply();
+            updateBarometerVisibility(checked);
+            if (checked && sensorPressure != null) {
+                sensorManager.registerListener(this, sensorPressure, SensorManager.SENSOR_DELAY_NORMAL);
+            } else {
+                sensorManager.unregisterListener(this, sensorPressure);
+            }
+        });
+
+        Button buttonCalibrateAltitude = findViewById(R.id.buttonCalibrateAltitude);
+        buttonCalibrateAltitude.setOnClickListener(v -> {
+            if (inputKnownAltitude.getText() == null) return;
+            String s = inputKnownAltitude.getText().toString().trim();
+            try {
+                float known = Float.parseFloat(s);
+                barometerManager.calibrateTo(known);
+                getSharedPreferences(BARO_PREFS, MODE_PRIVATE).edit()
+                        .putFloat("calibration_offset_m", barometerManager.getCalibrationOffsetM()).apply();
+                Toast.makeText(this, getString(R.string.barometer_calibrated, known), Toast.LENGTH_SHORT).show();
+            } catch (NumberFormatException e) {
+                Toast.makeText(this, "Invalid altitude value", Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        Button buttonSaveManualElevation = findViewById(R.id.buttonSaveManualElevation);
+        buttonSaveManualElevation.setOnClickListener(v -> {
+            if (inputManualElevation.getText() == null) return;
+            String s = inputManualElevation.getText().toString().trim();
+            try {
+                float alt = Float.parseFloat(s);
+                barometerManager.setManualElevation(alt);
+                getSharedPreferences(BARO_PREFS, MODE_PRIVATE).edit()
+                        .putFloat("manual_elevation_m", alt).apply();
+                Toast.makeText(this, getString(R.string.manual_elevation_saved, alt), Toast.LENGTH_SHORT).show();
+            } catch (NumberFormatException e) {
+                Toast.makeText(this, "Invalid elevation value", Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        if (barometerManager.isEnabled() && sensorPressure != null) {
+            sensorManager.registerListener(this, sensorPressure, SensorManager.SENSOR_DELAY_NORMAL);
+        }
+        inputManualElevation.setText(String.valueOf((int) barometerManager.getManualElevation()));
+    }
+
+    private void updateBarometerVisibility(boolean barometerOn) {
+        layoutBarometerCalibrate.setVisibility(barometerOn ? View.VISIBLE : View.GONE);
+        layoutManualElevation.setVisibility(barometerOn ? View.GONE : View.VISIBLE);
     }
 
     private void loadSavedCalibration() {
@@ -426,6 +512,16 @@ public class CalibrationActivity extends AppCompatActivity implements SensorEven
             case Sensor.TYPE_MAGNETIC_FIELD:
                 magValues = event.values.clone();
                 updateHeading();
+                break;
+            case Sensor.TYPE_PRESSURE:
+                if (barometerManager != null && barometerManager.isEnabled()) {
+                    barometerManager.onPressureReading(event.values[0]);
+                    float alt = barometerManager.getAltitudeM();
+                    if (textBarometerReading != null) {
+                        textBarometerReading.setText(
+                                getString(R.string.barometer_reading, event.values[0], alt));
+                    }
+                }
                 break;
         }
     }

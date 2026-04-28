@@ -5,6 +5,10 @@ import android.content.IntentFilter;
 import android.graphics.Canvas;
 import android.net.Uri;
 
+import org.osmdroid.events.MapListener;
+import org.osmdroid.events.ScrollEvent;
+import org.osmdroid.events.ZoomEvent;
+
 import org.osmdroid.tileprovider.IRegisterReceiver;
 import org.osmdroid.tileprovider.MapTileProviderArray;
 import org.osmdroid.tileprovider.MapTileProviderBase;
@@ -20,8 +24,14 @@ import org.osmdroid.views.overlay.TilesOverlay;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -42,6 +52,17 @@ public class LayerManager {
 
     // Ordered map: layer id → (model, overlay)
     private final LinkedHashMap<String, LayerEntry> entries = new LinkedHashMap<>();
+    // KML vector/raster layers tracked separately (no tile overlay)
+    private final LinkedHashMap<String, KmlLayerEntry> kmlEntries = new LinkedHashMap<>();
+    // Pending dynamic NetworkLinks (onRegion/onStop) across all loaded KML/KMZ files
+    private final List<KmlOverlay.NetworkLinkDesc> kmlPendingLinks = new ArrayList<>();
+    private final Set<String> kmlFetchedHrefs = new HashSet<>();
+    private final ScheduledExecutorService kmlRefreshPool = Executors.newSingleThreadScheduledExecutor();
+    private ScheduledFuture<?> kmlRefreshTask;
+    // OSM base layer (built-in MapView base overlay, wrapped for alpha/visibility)
+    private AlphaTilesOverlay osmBaseOverlay;
+    private final MapLayer osmBaseLayer = new MapLayer(
+            "osm_base", "OSM (fond de carte)", LayerType.WMS, "", "", "", "", "");
 
     private static class LayerEntry {
         final MapLayer layer;
@@ -52,6 +73,15 @@ public class LayerManager {
         }
     }
 
+    private static class KmlLayerEntry {
+        final MapLayer layer;
+        final List<org.osmdroid.views.overlay.Overlay> overlays;
+        KmlLayerEntry(MapLayer layer, List<org.osmdroid.views.overlay.Overlay> overlays) {
+            this.layer   = layer;
+            this.overlays = overlays;
+        }
+    }
+
     public LayerManager(Context context) {
         this.context = context.getApplicationContext();
     }
@@ -59,9 +89,39 @@ public class LayerManager {
     /** Must be called after the MapView overlays are populated (i.e. after initMap). */
     public void attach(MapView mapView) {
         this.mapView = mapView;
+        // Wrap the built-in OSM base overlay with our alpha-capable version
+        osmBaseOverlay = new AlphaTilesOverlay(mapView.getTileProvider(), context);
+        osmBaseOverlay.setLoadingBackgroundColor(android.graphics.Color.TRANSPARENT);
+        osmBaseOverlay.setEnabled(osmBaseLayer.isVisible());
+        osmBaseOverlay.setAlpha(osmBaseLayer.getAlpha());
+        mapView.getOverlayManager().setTilesOverlay(osmBaseOverlay);
         // Re-apply any layers that were added before attach
         for (LayerEntry e : entries.values()) {
             insertOverlay(e.overlay);
+        }
+        // Register viewport listener to refresh dynamic KML NetworkLinks on scroll/zoom
+        mapView.addMapListener(new MapListener() {
+            @Override public boolean onScroll(ScrollEvent event) { scheduleKmlRefresh(); return false; }
+            @Override public boolean onZoom(ZoomEvent event)     { scheduleKmlRefresh(); return false; }
+        });
+    }
+
+    /** Schedule a deferred KML dynamic-link refresh (debounced 1.5 s after last viewport change). */
+    private void scheduleKmlRefresh() {
+        if (kmlPendingLinks.isEmpty()) return;
+        if (kmlRefreshTask != null) kmlRefreshTask.cancel(false);
+        kmlRefreshTask = kmlRefreshPool.schedule(this::doKmlRefresh, 1500, TimeUnit.MILLISECONDS);
+    }
+
+    private void doKmlRefresh() {
+        if (mapView == null || kmlPendingLinks.isEmpty()) return;
+        List<org.osmdroid.views.overlay.Overlay> newOverlays =
+                KmlOverlay.fetchPendingLinks(context, mapView, kmlPendingLinks, kmlFetchedHrefs);
+        if (!newOverlays.isEmpty()) {
+            mapView.post(() -> {
+                mapView.getOverlays().addAll(newOverlays);
+                mapView.invalidate();
+            });
         }
     }
 
@@ -87,21 +147,51 @@ public class LayerManager {
     }
 
     public void removeLayer(String id) {
+        if ("osm_base".equals(id)) return; // base layer cannot be removed
         LayerEntry e = entries.remove(id);
-        if (e == null || mapView == null) return;
-        mapView.getOverlays().remove(e.overlay);
-        mapView.invalidate();
+        if (e != null) {
+            if (mapView != null) {
+                mapView.getOverlays().remove(e.overlay);
+                mapView.invalidate();
+            }
+            return;
+        }
+        KmlLayerEntry ke = kmlEntries.remove(id);
+        if (ke != null && mapView != null) {
+            mapView.getOverlays().removeAll(ke.overlays);
+            mapView.invalidate();
+        }
     }
 
     public void setVisible(String id, boolean visible) {
+        if ("osm_base".equals(id)) {
+            osmBaseLayer.setVisible(visible);
+            if (osmBaseOverlay != null) osmBaseOverlay.setEnabled(visible);
+            if (mapView != null) mapView.invalidate();
+            return;
+        }
         LayerEntry e = entries.get(id);
-        if (e == null) return;
-        e.layer.setVisible(visible);
-        e.overlay.setEnabled(visible);
-        if (mapView != null) mapView.invalidate();
+        if (e != null) {
+            e.layer.setVisible(visible);
+            e.overlay.setEnabled(visible);
+            if (mapView != null) mapView.invalidate();
+            return;
+        }
+        KmlLayerEntry ke = kmlEntries.get(id);
+        if (ke != null) {
+            ke.layer.setVisible(visible);
+            for (org.osmdroid.views.overlay.Overlay o : ke.overlays) o.setEnabled(visible);
+            if (mapView != null) mapView.invalidate();
+        }
     }
 
     public void setAlpha(String id, float alpha) {
+        if ("osm_base".equals(id)) {
+            osmBaseLayer.setAlpha(alpha);
+            if (osmBaseOverlay != null) osmBaseOverlay.setAlpha(alpha);
+            if (mapView != null) mapView.invalidate();
+            return;
+        }
         LayerEntry e = entries.get(id);
         if (e == null) return;
         e.layer.setAlpha(alpha);
@@ -111,7 +201,9 @@ public class LayerManager {
 
     public List<MapLayer> getLayers() {
         List<MapLayer> out = new ArrayList<>();
+        out.add(osmBaseLayer); // base layer always first
         for (LayerEntry e : entries.values()) out.add(e.layer);
+        for (KmlLayerEntry ke : kmlEntries.values()) out.add(ke.layer);
         return out;
     }
 
@@ -135,6 +227,11 @@ public class LayerManager {
             LayerType.WMS,
             "https://geoservices.brgm.fr/geologie",
             "SCAN_H_GEOL50", "", "image/png", ""));
+        presets.add(new MapLayer(
+            "ign_routes", "IGN Routes",
+            LayerType.WMTS,
+            "https://data.geopf.fr/wmts",
+            "TRANSPORTNETWORKS.ROADS", "normal", "image/png", "PM"));
         return presets;
     }
 
@@ -202,6 +299,51 @@ public class LayerManager {
         }
     }
 
+    /**
+     * Import a KML or KMZ file from a SAF URI and add its geometries as overlays.
+     * Must be called off the UI thread.
+     *
+     * @throws Exception if parse or IO fails
+     */
+    /** Returns number of overlays added (0 = file parsed but had no displayable content). */
+    public int importKml(Uri uri, String displayName) throws Exception {
+        if (mapView == null) return 0;
+        KmlOverlay.LoadResult result = KmlOverlay.loadFull(context, uri, mapView);
+        List<org.osmdroid.views.overlay.Overlay> overlays = result.overlays;
+        if (!result.pendingLinks.isEmpty()) {
+            synchronized (kmlPendingLinks) { kmlPendingLinks.addAll(result.pendingLinks); }
+        }
+        int idx = importCounter.incrementAndGet();
+        String id = "kml_" + idx;
+        MapLayer layer = new MapLayer(id, displayName, LayerType.KML, "", "", "", "", "");
+        kmlEntries.put(id, new KmlLayerEntry(layer, overlays));
+        mapView.post(() -> {
+            mapView.getOverlays().addAll(overlays);
+            mapView.invalidate();
+        });
+        return overlays.size();
+    }
+
+    /**
+     * Import a Shapefile (ZIP or raw .shp) from a SAF URI and add its geometries as overlays.
+     * Must be called off the UI thread.
+     *
+     * @throws IOException if parse or IO fails
+     */
+    public void importShapefile(Uri uri, String displayName) throws IOException {
+        if (mapView == null) return;
+        List<org.osmdroid.views.overlay.Overlay> overlays =
+                ShapefileOverlay.load(context, uri, mapView);
+        int idx = importCounter.incrementAndGet();
+        String id = "shp_" + idx;
+        MapLayer layer = new MapLayer(id, displayName, LayerType.KML, "", "", "", "", "");
+        kmlEntries.put(id, new KmlLayerEntry(layer, overlays));
+        mapView.post(() -> {
+            mapView.getOverlays().addAll(overlays);
+            mapView.invalidate();
+        });
+    }
+
     // ------------------------------------------------------------------ offline download helpers
 
     /**
@@ -209,10 +351,15 @@ public class LayerManager {
      * Returns null if the layer id is not found or is not an online source.
      */
     public OnlineTileSourceBase getTileSourceForLayer(String id) {
+        if ("osm_base".equals(id)) {
+            return (OnlineTileSourceBase) org.osmdroid.tileprovider.tilesource.TileSourceFactory.MAPNIK;
+        }
         LayerEntry e = entries.get(id);
         if (e == null) return null;
         return buildTileSource(e.layer);
     }
+
+    public MapLayer getOsmBaseLayer() { return osmBaseLayer; }
 
     /**
      * Load a pre-downloaded MBTiles file directly (no SAF copy needed).

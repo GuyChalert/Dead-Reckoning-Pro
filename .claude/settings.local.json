@@ -58,9 +58,19 @@
       "WebFetch(domain:data.geopf.fr)",
       "WebFetch(domain:geoservices.brgm.fr)",
       "Bash(curl -s \"https://data.geopf.fr/wmts?SERVICE=WMTS&VERSION=1.0.0&REQUEST=GetCapabilities\")",
-      "Bash(curl *)"
+      "Bash(curl *)",
+      "Bash(grep -E '\\\\.\\(jar|aar\\)$')",
+      "Bash(xargs cat *)",
+      "Bash(unzip -l /data/data/com.termux/files/home/code/Dead-Reckoning-Pro/provider/scan_f_geol50_catalog.kmz)",
+      "Bash(unzip -p /data/data/com.termux/files/home/code/Dead-Reckoning-Pro/provider/scan_f_geol50_catalog.kmz)",
+      "Bash(unzip *)",
+      "Bash(rtk ./gradlew assembleDebug)"
     ]
   },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "code-review-graph"
+  ],
   "hooks": {
     "SessionStart": [
       {

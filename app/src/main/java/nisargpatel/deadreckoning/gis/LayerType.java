@@ -1,3 +1,3 @@
 package nisargpatel.deadreckoning.gis;
 
-public enum LayerType { WMTS, WMS }
+public enum LayerType { WMTS, WMS, KML }

@@ -4,6 +4,15 @@ import org.ejml.simple.SimpleMatrix;
 
 import nisargpatel.deadreckoning.extra.ExtraFunctions;
 
+/**
+ * Estimates hard-iron magnetic bias from uncalibrated magnetometer samples.
+ *
+ * <p>Implements the least-squares sphere-fit method described in Freescale
+ * AN4246 "Calibrating an eCompass in the Presence of Hard and Soft-iron
+ * Interference" (Rev. 3, p. 14). Accumulates the normal-equation matrices
+ * X<sup>T</sup>X and X<sup>T</sup>Y sample by sample, then solves for the
+ * bias vector when {@link #getBias()} is called.
+ */
 public class MagneticFieldBias {
 
     /*
@@ -57,6 +66,14 @@ public class MagneticFieldBias {
         XTY = new double[4][1];
     }
 
+    /**
+     * Accumulates one raw magnetometer reading into the normal-equation matrices.
+     * The first sample is held in reserve (the algorithm uses n-1 samples per
+     * the paper's formulation), so at least two calls are required before
+     * {@link #getBias()} yields a meaningful result.
+     *
+     * @param rawMagneticValues Uncalibrated magnetometer reading [x, y, z] in μT.
+     */
     public void calcBias(float[] rawMagneticValues) {
 
         float x, y, z;
@@ -94,6 +111,15 @@ public class MagneticFieldBias {
 
     }
 
+    /**
+     * Solves the accumulated normal equations and returns the hard-iron bias.
+     * Requires enough samples to make X<sup>T</sup>X invertible (≥ 4 unique
+     * positions on the sphere surface in practice).
+     *
+     * @return Array {@code [xBias, yBias, zBias, fieldStrength]} where the
+     *         bias components are in μT and {@code fieldStrength} is the
+     *         estimated local magnetic field magnitude in μT.
+     */
     public float[] getBias() {
         SimpleMatrix M_XTX = new SimpleMatrix(XTX);
         SimpleMatrix M_XTY = new SimpleMatrix(XTY);
