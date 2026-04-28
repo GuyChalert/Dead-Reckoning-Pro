@@ -25,6 +25,13 @@ import nisargpatel.deadreckoning.dialog.UserDetailsDialogFragment;
 import nisargpatel.deadreckoning.extra.ExtraFunctions;
 import nisargpatel.deadreckoning.interfaces.OnUserUpdateListener;
 
+/**
+ * Lists all saved user profiles stored in SharedPreferences.
+ * Tap: launches {@link SensorCalibrationDialogFragment} → GraphActivity with that user's data.
+ * Long-press: opens {@link AccessUserDialogFragment} to navigate to {@link UserActivity}.
+ * FAB: opens {@link UserDetailsDialogFragment} to create a new user.
+ * Profile data is persisted via {@link ExtraFunctions} array helpers.
+ */
 public class UserListActivity extends AppCompatActivity implements OnUserUpdateListener {
 
     public static final int REQUEST_CODE = 0;
@@ -170,16 +177,22 @@ public class UserListActivity extends AppCompatActivity implements OnUserUpdateL
         updatePrefs();
     }
 
+    /** Rebuilds the ListView adapter from the current {@code userList}. */
     private void refreshListView() {
         ArrayAdapter<String> listAdapter = new ArrayAdapter<>(UserListActivity.this, android.R.layout.simple_list_item_1, userList);
         myList.setAdapter(listAdapter);
     }
 
+    /**
+     * @param sensorType Android sensor type constant (e.g. {@link Sensor#TYPE_STEP_DETECTOR}).
+     * @return {@code true} if the device has that sensor.
+     */
     private boolean checkSensor(int sensorType) {
         SensorManager sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
         return sensorManager != null && (sensorManager.getDefaultSensor(sensorType) != null);
     }
 
+    /** Persists all three user arrays (names, strides, preferred step counters) to SharedPreferences. */
     private void updatePrefs() {
         ExtraFunctions.addArrayToSharedPreferences("user_list", userList, sharedPreferencesEditor);
         ExtraFunctions.addArrayToSharedPreferences("stride_list", strideList, sharedPreferencesEditor);

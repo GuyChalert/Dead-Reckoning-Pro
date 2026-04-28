@@ -35,6 +35,17 @@ import nisargpatel.deadreckoning.orientation.GyroscopeEulerOrientation;
 import nisargpatel.deadreckoning.orientation.MagneticFieldOrientation;
 import nisargpatel.deadreckoning.stepcounting.DynamicStepCounter;
 
+/**
+ * Legacy dead-reckoning activity that fuses uncalibrated gyroscope + magnetometer heading with
+ * a {@link DynamicStepCounter} to build an XY scatter plot of the walked path.
+ * Calibration biases (gyro + mag) are received as intent extras from
+ * {@link SensorCalibrationDialogFragment}. Raw sensor data is logged to
+ * {@code Dead_Reckoning/Graph_Activity/} via {@link DataFileWriter}.
+ *
+ * <p>GPS is used only to annotate log rows with GPS week/second timestamps.
+ * Heading is computed via {@link GyroscopeEulerOrientation} (DCM integration) with
+ * a complementary magnetometer correction from {@link MagneticFieldOrientation}.
+ */
 public class GraphActivity extends AppCompatActivity implements SensorEventListener, LocationListener {
 
     private static final long GPS_SECONDS_PER_WEEK = 511200L;
@@ -534,6 +545,7 @@ public class GraphActivity extends AppCompatActivity implements SensorEventListe
     @Override
     public void onProviderDisabled(String provider) {}
 
+    /** Creates the {@link DataFileWriter} on first FAB press; no-op on subsequent calls. */
     private void createFiles() {
         if (!areFilesCreated) {
             try {

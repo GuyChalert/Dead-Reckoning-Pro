@@ -1,9 +1,24 @@
+# Hidden directories
+.*/
+
 # Gradle build outputs
 .gradle/
 gradle/
 app/build/
 build/
 *gradle*
+
+# .kiro
+.kiro/
+
+# code-review-graph
+.code-review-graph/
+
+# .rtk
+.rtk/
+
+# dual-graph
+.dual-graph/
 
 # Android Studio / IntelliJ
 .idea/
@@ -14,26 +29,13 @@ local.properties
 .DS_Store
 Thumbs.db
 
-# Dual-graph MCP runtime files (logs, caches, indices)
-.dual-graph/*.log
-.dual-graph/*.jsonl
-.dual-graph/*.json
-.dual-graph/*.bin
-
-# APK outputs (track release APKs separately if needed)
-*.apk
-*.aab
-
 # Libraries and third party softwares
+app/libs/
 cmdline-tools.zip
 installjava
 local.properties
 
-# Data providers
+# Data
 provider/
+shapefile/
 
-# Data folders
-shapefile/.dual-graph/
-.dual-graph/
-# Added by code-review-graph
-.code-review-graph/

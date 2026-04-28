@@ -17,13 +17,21 @@ import java.util.Locale;
 import nisargpatel.deadreckoning.R;
 import nisargpatel.deadreckoning.model.Trip;
 
+/**
+ * RecyclerView adapter for the trip history list.
+ * Displays name, date, distance (km), duration, and step count for each trip.
+ * Tap = {@link OnTripClickListener#onTripClick}, long-press or export button = {@link OnTripClickListener#onTripLongClick}.
+ */
 public class TripAdapter extends RecyclerView.Adapter<TripAdapter.TripViewHolder> {
 
     private List<Trip> trips;
     private final OnTripClickListener listener;
     
+    /** Callback for item interactions. */
     public interface OnTripClickListener {
+        /** Called on a regular tap to view trip details. */
         void onTripClick(Trip trip);
+        /** Called on a long-press or export button tap to show the export/delete menu. */
         void onTripLongClick(Trip trip);
     }
 
@@ -51,6 +59,7 @@ public class TripAdapter extends RecyclerView.Adapter<TripAdapter.TripViewHolder
         return trips.size();
     }
 
+    /** Replaces the trip list and triggers a full rebind. */
     public void updateTrips(List<Trip> trips) {
         this.trips = trips;
         notifyDataSetChanged();

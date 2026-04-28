@@ -39,14 +39,32 @@ public class PreciseHeadingEstimator {
         hasRotationVector = true;
     }
 
+    /**
+     * Updates the gravity (accelerometer) reading used by the fallback filter.
+     *
+     * @param values TYPE_ACCELEROMETER reading [x, y, z] in m/s².
+     */
     public void updateGravity(float[] values) {
         gravityValues = values.clone();
     }
 
+    /**
+     * Updates the magnetic field reading used by the fallback filter.
+     *
+     * @param values TYPE_MAGNETIC_FIELD reading [x, y, z] in μT.
+     */
     public void updateMagneticField(float[] values) {
         magValues = values.clone();
     }
 
+    /**
+     * Updates the gyroscope reading and propagates the fallback heading
+     * by integrating the Z-axis angular rate.
+     * No-op if the rotation vector source is available.
+     *
+     * @param values    Bias-corrected gyroscope reading [x, y, z] in rad/s.
+     * @param timestamp Sensor event timestamp in nanoseconds (ns).
+     */
     public void updateGyroscope(float[] values, long timestamp) {
         if (lastTimestamp == 0) {
             lastTimestamp = timestamp;
@@ -69,6 +87,12 @@ public class PreciseHeadingEstimator {
         }
     }
 
+    /**
+     * Returns the best available heading estimate.
+     * Prefers the rotation-vector source; falls back to the Mahony complementary filter.
+     *
+     * @return Heading in degrees (°); 0° = North (magnetic), positive clockwise.
+     */
     public double getHeading() {
         if (hasRotationVector && rotationVectorValues != null) {
             return headingFromRotationVector();
@@ -76,12 +100,26 @@ public class PreciseHeadingEstimator {
         return headingFromFallback();
     }
 
+    /**
+     * Derives heading from the TYPE_GAME_ROTATION_VECTOR quaternion via
+     * {@link android.hardware.SensorManager#getOrientation}.
+     *
+     * @return Heading (azimuth) in degrees (°).
+     */
     private double headingFromRotationVector() {
         SensorManager.getRotationMatrixFromVector(rotationMatrix, rotationVectorValues);
         SensorManager.getOrientation(rotationMatrix, orientationAngles);
         return Math.toDegrees(orientationAngles[0]);
     }
 
+    /**
+     * Computes heading using a Mahony-style complementary filter.
+     * Gyro propagates heading each Δt; magnetometer applies a small error
+     * correction (gain = {@link #MAG_CORRECTION_GAIN}) toward the absolute
+     * magnetic heading when gravity + mag data are available.
+     *
+     * @return Heading in degrees (°).
+     */
     private double headingFromFallback() {
         if (gravityValues != null && magValues != null) {
             boolean ok = SensorManager.getRotationMatrix(
@@ -98,16 +136,24 @@ public class PreciseHeadingEstimator {
         return Math.toDegrees(heading);
     }
 
+    /**
+     * Wraps an angle to (−π, π].
+     *
+     * @param r Angle in radians (rad).
+     * @return Equivalent angle in (−π, π] in radians (rad).
+     */
     private static double wrapRadians(double r) {
         while (r >  Math.PI) r -= 2 * Math.PI;
         while (r < -Math.PI) r += 2 * Math.PI;
         return r;
     }
 
+    /** Alias for {@link #getHeading()}; returns heading in degrees (°). */
     public double getHeadingDegrees() {
         return getHeading();
     }
 
+    /** Resets all sensor state; the next call to {@link #getHeading()} will re-initialise. */
     public void reset() {
         heading = 0;
         lastTimestamp = 0;
@@ -118,15 +164,25 @@ public class PreciseHeadingEstimator {
         gyroValues = null;
     }
 
+    /**
+     * @return {@code true} if at least one valid heading source is available
+     *         (rotation vector, or both gravity and magnetometer).
+     */
     public boolean hasValidData() {
         return hasRotationVector || (gravityValues != null && magValues != null);
     }
 
+    /** @return {@code true} if the rotation-vector (magnetometer-free) path is active. */
     public boolean usingRotationVector() {
         return hasRotationVector;
     }
 
+    /** @return Most recent gravity reading [x, y, z] in m/s², or {@code null}. */
     public float[] getGravity()       { return gravityValues; }
+
+    /** @return Most recent magnetic field reading [x, y, z] in μT, or {@code null}. */
     public float[] getMagneticField() { return magValues; }
+
+    /** @return Most recent gyroscope reading [x, y, z] in rad/s, or {@code null}. */
     public float[] getGyroscope()     { return gyroValues; }
 }

@@ -50,6 +50,19 @@ import nisargpatel.deadreckoning.sensor.DeadReckoningEngine;
 import nisargpatel.deadreckoning.sensor.PreciseHeadingEstimator;
 import nisargpatel.deadreckoning.storage.TripStorage;
 
+/**
+ * Main navigation activity showing a live osmdroid map with the dead-reckoning path.
+ * Supports two modes set by the {@code view_mode} intent extra:
+ * <ul>
+ *   <li><b>Live mode</b> (default): streams IMU sensors through {@link DeadReckoningEngine} +
+ *       {@link PreciseHeadingEstimator}, plots DR and GPS traces in different colours, and
+ *       saves the trip to {@link TripStorage} on stop.</li>
+ *   <li><b>View mode</b> ({@code view_mode=true}): loads a historical {@link Trip} by
+ *       {@code trip_id} extra and replays its path on the map without activating sensors.</li>
+ * </ul>
+ * GPS fixes from FusedLocationProviderClient are used both for the GPS trace and to calibrate
+ * the DR engine when accuracy &lt; 15 m. Forced no-GPS mode is also available for underground use.
+ */
 public class MainNavigationActivity extends AppCompatActivity implements SensorEventListener, LocationListener {
 
     private static final int LOCATION_PERMISSION_REQUEST = 1001;
@@ -126,6 +139,7 @@ public class MainNavigationActivity extends AppCompatActivity implements SensorE
         }
     }
     
+    /** Loads the trip identified by the {@code trip_id} intent extra and replays its path; hides tracking controls. */
     private void loadTripForView() {
         try {
             String tripId = getIntent().getStringExtra("trip_id");
@@ -197,6 +211,7 @@ public class MainNavigationActivity extends AppCompatActivity implements SensorE
         }
     }
     
+    /** Toggles the {@code isPaused} flag; sensor events are silently dropped while paused. */
     private void togglePause() {
         if (!isTracking) return;
         
@@ -223,6 +238,7 @@ public class MainNavigationActivity extends AppCompatActivity implements SensorE
         registerSensors();
     }
 
+    /** Registers gravity, magnetic, gyroscope, linear acceleration, and game-rotation-vector at FASTEST rate. */
     private void registerSensors() {
         if (sensorGravity != null) {
             sensorManager.registerListener(this, sensorGravity, SensorManager.SENSOR_DELAY_FASTEST);
@@ -255,6 +271,10 @@ public class MainNavigationActivity extends AppCompatActivity implements SensorE
         };
     }
 
+    /**
+     * Sets up the osmdroid MapView at zoom 18: adds a blue DR path polyline, a red no-GPS path
+     * polyline, and (if permission granted) a MyLocationNewOverlay for the GPS dot.
+     */
     private void initializeMap() {
         mapView = findViewById(R.id.mapView);
         mapView.setTileSource(TileSourceFactory.MAPNIK);
@@ -283,6 +303,7 @@ public class MainNavigationActivity extends AppCompatActivity implements SensorE
         }
     }
 
+    /** Pushes the latest GPS and DR point lists to their respective overlays and redraws the map. */
     private void updatePathOnMap() {
         if (!pathPoints.isEmpty()) {
             pathOverlay.setPoints(pathPoints);
@@ -307,6 +328,7 @@ public class MainNavigationActivity extends AppCompatActivity implements SensorE
         }
     }
 
+    /** Requests high-accuracy GPS at 1 s / 0.5 s min interval; also fetches last known location immediately. */
     @SuppressLint("MissingPermission")
     private void startLocationUpdates() {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
@@ -327,6 +349,11 @@ public class MainNavigationActivity extends AppCompatActivity implements SensorE
         }
     }
 
+    /**
+     * Processes a GPS fix: updates accuracy and coordinate labels, decides whether to use GPS
+     * for the trace (accuracy &lt;15 m) or switch to DR-only, calibrates the engine, and appends
+     * the fix to {@code pathPoints} when it moved &gt;1 m.
+     */
     private void handleGPSUpdate(Location location) {
         if (isPaused) return;
         
@@ -382,6 +409,7 @@ public class MainNavigationActivity extends AppCompatActivity implements SensorE
         }
     }
 
+    /** @return Great-circle distance (m) between two WGS-84 points. */
     private double distanceBetween(GeoPoint p1, GeoPoint p2) {
         return p1.distanceToAsDouble(p2);
     }
@@ -394,6 +422,7 @@ public class MainNavigationActivity extends AppCompatActivity implements SensorE
         }
     }
 
+    /** Starts the DR engine, resets all path points, and updates UI to show Stop/Pause buttons. */
     private void startTracking() {
         isTracking = true;
         isPaused = false;
@@ -415,6 +444,7 @@ public class MainNavigationActivity extends AppCompatActivity implements SensorE
         Toast.makeText(this, "Tracking started", Toast.LENGTH_SHORT).show();
     }
 
+    /** Stops the DR engine, hides the Pause button, and persists the trip via {@link #saveTrip()}. */
     private void stopTracking() {
         isTracking = false;
         deadReckoningEngine.stop();
@@ -428,6 +458,7 @@ public class MainNavigationActivity extends AppCompatActivity implements SensorE
         Toast.makeText(this, "Tracking stopped", Toast.LENGTH_SHORT).show();
     }
     
+    /** Creates a {@link Trip} snapshot with the current path, distance, and step count, then persists it. */
     private void saveTrip() {
         Trip trip = new Trip("Trip " + System.currentTimeMillis());
         trip.setPathPoints(new ArrayList<>(pathPoints));
@@ -438,6 +469,7 @@ public class MainNavigationActivity extends AppCompatActivity implements SensorE
         tripStorage.saveTrip(trip);
     }
 
+    /** Resets the DR engine and clears the on-map path without stopping an active session. */
     private void resetTracking() {
         deadReckoningEngine.reset();
         pathPoints.clear();
@@ -445,6 +477,7 @@ public class MainNavigationActivity extends AppCompatActivity implements SensorE
         Toast.makeText(this, "Tracking reset", Toast.LENGTH_SHORT).show();
     }
 
+    /** Animates the map camera to the current DR/GPS position, or to the MyLocation overlay as fallback. */
     private void centerOnCurrentPosition() {
         if (currentPosition != null) {
             mapView.getController().animateTo(currentPosition);
@@ -529,6 +562,14 @@ public class MainNavigationActivity extends AppCompatActivity implements SensorE
         }
     }
 
+    /**
+     * Computes the next WGS-84 point using the haversine forward formula.
+     *
+     * @param start    Origin point (WGS-84).
+     * @param heading  Bearing (°) clockwise from north.
+     * @param distance Distance to advance (m).
+     * @return New GeoPoint, or {@code null} if calculation fails.
+     */
     private GeoPoint calculateNextPoint(GeoPoint start, float heading, double distance) {
         // Simple dead reckoning calculation
         double radiusOfEarth = 6371000; // meters

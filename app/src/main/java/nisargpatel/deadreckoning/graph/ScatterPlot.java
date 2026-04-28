@@ -8,38 +8,56 @@ import android.view.View;
 
 import java.util.ArrayList;
 
+/**
+ * 2-D scatter plot backed by a custom {@link android.view.View}.
+ * Axes are auto-scaled to the next round-100 boundary above the maximum absolute value.
+ */
 public class ScatterPlot {
 
     private final String seriesName;
     private final ArrayList<Double> xList = new ArrayList<>();
     private final ArrayList<Double> yList = new ArrayList<>();
 
+    /**
+     * @param seriesName Title displayed at the top of the plot canvas.
+     */
     public ScatterPlot(String seriesName) {
         this.seriesName = seriesName;
     }
 
+    /** @return A {@link View} that renders this scatter plot; add it to a container layout. */
     public View getGraphView(Context context) {
         return new ScatterView(context);
     }
 
+    /**
+     * Appends a data point to the series.
+     *
+     * @param x Horizontal axis value.
+     * @param y Vertical axis value.
+     */
     public void addPoint(double x, double y) {
         xList.add(x);
         yList.add(y);
     }
 
+    /** @return X value of the most recently added point, or 0 if the series is empty. */
     public float getLastXPoint() {
         return xList.isEmpty() ? 0f : xList.get(xList.size() - 1).floatValue();
     }
 
+    /** @return Y value of the most recently added point, or 0 if the series is empty. */
     public float getLastYPoint() {
         return yList.isEmpty() ? 0f : yList.get(yList.size() - 1).floatValue();
     }
 
+    /** Removes all data points from the series. */
     public void clearSet() {
         xList.clear();
         yList.clear();
     }
 
+    /** Computes the axis bound as the next multiple of 100 above the maximum absolute data value. */
     private double getMaxBound() {
         double max = 1;
         for (double v : xList) if (Math.abs(v) > max) max = Math.abs(v);

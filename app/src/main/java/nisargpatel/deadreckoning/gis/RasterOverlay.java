@@ -24,11 +24,19 @@ public class RasterOverlay extends Overlay {
     private final Paint paint = new Paint(Paint.FILTER_BITMAP_FLAG | Paint.ANTI_ALIAS_FLAG);
     private final Point reuse = new Point();
 
+    /**
+     * @param bitmap Decoded raster image; must not be null or recycled when drawing.
+     * @param bounds Geographic bounding box (WGS-84) to stretch the image over.
+     */
     public RasterOverlay(Bitmap bitmap, BoundingBox bounds) {
         this.bitmap = bitmap;
         this.bounds = bounds;
     }
 
+    /**
+     * Projects the bounding-box corners to screen pixels and draws the bitmap stretched
+     * to that rectangle. No-op during the shadow pass or if the bitmap is recycled.
+     */
     @Override
     public void draw(Canvas canvas, MapView mapView, boolean shadow) {
         if (shadow || bitmap == null || bitmap.isRecycled()) return;
@@ -49,6 +57,7 @@ public class RasterOverlay extends Overlay {
                 paint);
     }
 
+    /** Releases the bitmap memory. Call when the overlay is removed from the map. */
     public void recycle() {
         if (bitmap != null && !bitmap.isRecycled()) bitmap.recycle();
     }

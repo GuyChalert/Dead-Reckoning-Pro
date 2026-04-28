@@ -11,6 +11,10 @@ import org.osmdroid.views.MapView;
 
 import java.io.File;
 
+/**
+ * Application subclass. Initialises osmdroid tile configuration once at process start.
+ * Tile cache is capped at 100 MB (trim at 80 MB) with a 7-day expiry override.
+ */
 public class DeadReckoningApp extends Application {
 
     private static DeadReckoningApp instance;
@@ -23,6 +27,7 @@ public class DeadReckoningApp extends Application {
         initOSMDroid();
     }
 
+    /** Configures osmdroid: user-agent, tile cache path/limits, expiry, and animation speed. */
     private void initOSMDroid() {
         IConfigurationProvider config = Configuration.getInstance();
 
@@ -45,14 +50,23 @@ public class DeadReckoningApp extends Application {
         config.load(this, getSharedPreferences("osmdroid", Context.MODE_PRIVATE));
     }
 
+    /** @return Application context accessible from any class without an Activity reference. */
     public static Context getAppContext() {
         return instance.getApplicationContext();
     }
 
+    /** @return A new {@link CacheManager} bound to the given MapView's tile provider. */
     public static CacheManager getCacheManager(MapView mapView) {
         return new CacheManager(mapView);
     }
 
+    /**
+     * Asynchronously caches tiles around {@code center} at zoom levels [{@code zoomLevel−2}, {@code zoomLevel+1}].
+     *
+     * @param center      Centre of the region to cache (WGS-84).
+     * @param zoomLevel   Target zoom level (clipped to [1, 19]).
+     * @param radiusTiles Approximate bounding-box half-width in tile units (used as 0.001°/tile margin).
+     */
     public static void preloadMapRegion(MapView mapView, GeoPoint center, int zoomLevel, int radiusTiles) {
         CacheManager cacheManager = getCacheManager(mapView);
 

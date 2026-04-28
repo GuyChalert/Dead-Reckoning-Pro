@@ -29,14 +29,25 @@ public class FactorGraph {
     final List<PoseNode>       nodes = new ArrayList<>();
     final List<ConstraintEdge> edges = new ArrayList<>();
 
+    /** Appends a pose node to the graph. Node ID must be unique and ascending. */
     public void addNode(PoseNode n)       { nodes.add(n); }
+
+    /** Appends a constraint edge (factor) to the graph. */
     public void addEdge(ConstraintEdge e) { edges.add(e); }
+
+    /** @return Number of pose nodes currently in the graph. */
     public int  nodeCount()               { return nodes.size(); }
 
     // ------------------------------------------------------------------
     // Levenberg-Marquardt pose-graph optimization (in-place on nodes).
     // ------------------------------------------------------------------
 
+    /**
+     * Runs Levenberg-Marquardt pose-graph optimisation in-place on all non-fixed nodes.
+     * Iterates up to {@value #MAX_ITER} times; stops early when the update norm falls
+     * below {@value #CONVERGE_EPS}. λ is adaptively increased on cost increase and
+     * decreased on cost decrease.
+     */
     public void optimize() {
         if (nodes.size() < 2) return;
         final int dim = 3 * nodes.size();
@@ -210,6 +221,13 @@ public class FactorGraph {
         b.set(ri, 0,  b.get(ri, 0)  + e.wPos * ex);
     }
 
+    /**
+     * Computes the Euclidean cumulative path length from node 0 to {@code upToNodeId}
+     * by summing consecutive ODOMETRY edge inter-node distances.
+     *
+     * @param upToNodeId Inclusive upper bound node ID.
+     * @return Path length in meters (m).
+     */
     private double computePathLength(int upToNodeId) {
         double len = 0;
         for (ConstraintEdge e : edges) {
@@ -227,6 +245,12 @@ public class FactorGraph {
     // Cost, state backup/restore
     // ------------------------------------------------------------------
 
+    /**
+     * Computes the total weighted sum-of-squared residuals over all edges.
+     * Used by the LM loop to decide whether to accept or reject an update.
+     *
+     * @return Scalar total cost (unitless — weighted sum of squared residuals).
+     */
     double totalCost() {
         double cost = 0;
         for (ConstraintEdge e : edges) {
@@ -259,6 +283,12 @@ public class FactorGraph {
         return cost;
     }
 
+    /**
+     * Applies the LM update vector to all non-fixed nodes in-place.
+     * Heading is normalised to (−π, π] after each update.
+     *
+     * @param delta 3N×1 update vector in state order [x₀,y₀,θ₀, x₁,y₁,θ₁, ...].
+     */
     private void applyDelta(SimpleMatrix delta) {
         for (int i = 0; i < nodes.size(); i++) {
             PoseNode n = nodes.get(i);
@@ -269,6 +299,11 @@ public class FactorGraph {
         }
     }
 
+    /**
+     * Snapshots all node poses into a flat array for potential rollback.
+     *
+     * @return Array of length 3N with state [x₀,y₀,θ₀, x₁,y₁,θ₁, ...].
+     */
     private double[] backupState() {
         double[] s = new double[nodes.size() * 3];
         for (int i = 0; i < nodes.size(); i++) {
@@ -279,6 +314,11 @@ public class FactorGraph {
         return s;
     }
 
+    /**
+     * Restores all node poses from a previously captured backup.
+     *
+     * @param s Flat state array from {@link #backupState()}.
+     */
     private void restoreState(double[] s) {
         for (int i = 0; i < nodes.size(); i++) {
             nodes.get(i).x     = s[3*i];
@@ -287,6 +327,12 @@ public class FactorGraph {
         }
     }
 
+    /**
+     * Wraps an angle to (−π, π].
+     *
+     * @param a Angle in radians (rad).
+     * @return Equivalent angle in (−π, π] in radians (rad).
+     */
     static double normalizeAngle(double a) {
         while (a >  Math.PI) a -= 2 * Math.PI;
         while (a < -Math.PI) a += 2 * Math.PI;

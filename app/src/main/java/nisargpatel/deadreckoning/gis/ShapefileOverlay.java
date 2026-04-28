@@ -136,6 +136,12 @@ public class ShapefileOverlay {
         return overlays;
     }
 
+    /**
+     * Tries to read the WKT string from the .prj file that is a sibling of the given .shp URI.
+     * Uses {@link DocumentsContract#buildDocumentUri} to swap the extension in the document ID.
+     *
+     * @return WKT projection string, or null if not found or not a SAF content URI.
+     */
     private static String readSiblingPrj(Context context, Uri shpUri) {
         if (!"content".equals(shpUri.getScheme())) return null;
         try {
@@ -156,6 +162,10 @@ public class ShapefileOverlay {
         }
     }
 
+    /**
+     * Converts a shapefile [x, y] coordinate pair to a WGS-84 {@link GeoPoint}.
+     * If {@code xf} is null the coordinates are assumed to already be WGS-84 (lon, lat).
+     */
     private static GeoPoint reproject(double[] xy, CoordinateTransform xf) {
         if (xf == null) return new GeoPoint(xy[1], xy[0]);
         ProjCoordinate src = new ProjCoordinate(xy[0], xy[1]);
@@ -164,6 +174,7 @@ public class ShapefileOverlay {
         return new GeoPoint(dst.y, dst.x);
     }
 
+    /** Converts all coordinate pairs in a shapefile ring to a list of WGS-84 GeoPoints. */
     private static List<GeoPoint> toGeoPoints(double[][] ring, CoordinateTransform xf) {
         List<GeoPoint> pts = new ArrayList<>(ring.length);
         for (double[] xy : ring) pts.add(reproject(xy, xf));

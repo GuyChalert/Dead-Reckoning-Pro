@@ -22,6 +22,12 @@ import nisargpatel.deadreckoning.extra.ExtraFunctions;
 import nisargpatel.deadreckoning.interfaces.OnPreferredStepCounterListener;
 import nisargpatel.deadreckoning.stepcounting.DynamicStepCounter;
 
+/**
+ * Guides the user through stride-length calibration.
+ * Runs 20 {@link DynamicStepCounter} instances simultaneously (sensitivity 0.50–1.45 in 0.05 steps).
+ * "Stop" opens {@link StepCalibrationDialogFragment} to pick the most accurate counter;
+ * "Set Stride Length" computes distance ÷ step count and returns the result to the caller.
+ */
 public class StepCalibrationActivity extends AppCompatActivity implements SensorEventListener, OnPreferredStepCounterListener {
 
     private TextView textAndroidSteps;
@@ -194,6 +200,12 @@ public class StepCalibrationActivity extends AppCompatActivity implements Sensor
 
     }
 
+    /**
+     * Called when the user selects a sensitivity from the picker dialog.
+     * Updates the displayed step count to match the chosen counter's tally.
+     *
+     * @param preferredStepCounterIndex Index into {@code dynamicStepCounters[]} selected by the user.
+     */
     @Override
     public void onPreferredStepCounter(int preferredStepCounterIndex) {
         this.preferredStepCounterIndex = preferredStepCounterIndex;

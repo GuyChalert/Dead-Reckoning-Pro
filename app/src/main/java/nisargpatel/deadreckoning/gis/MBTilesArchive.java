@@ -28,12 +28,25 @@ public class MBTilesArchive implements IArchiveFile {
     private SQLiteDatabase db;
     private boolean ignoreTileSource = false;
 
+    /**
+     * Opens the MBTiles SQLite database in read-only mode.
+     *
+     * @param dbFile Local SQLite file following the MBTiles 1.3 spec.
+     */
     public MBTilesArchive(File dbFile) {
         this.dbFile = dbFile;
         db = SQLiteDatabase.openDatabase(dbFile.getAbsolutePath(), null,
                 SQLiteDatabase.OPEN_READONLY);
     }
 
+    /**
+     * Copies a SAF URI into the app cache directory so SQLite can open it by file path.
+     * Must be called off the UI thread (copies file bytes).
+     *
+     * @param name Target filename within the cache directory (e.g. {@code "mbtiles_1.mbtiles"}).
+     * @return The copied {@link File} in the app's cache directory.
+     * @throws IOException if the URI cannot be opened or the copy fails.
+     */
     public static File copyToCache(Context context, Uri uri, String name) throws IOException {
         File out = new File(context.getCacheDir(), name);
         try (InputStream in = context.getContentResolver().openInputStream(uri);
@@ -51,6 +64,12 @@ public class MBTilesArchive implements IArchiveFile {
         // Already opened in constructor
     }
 
+    /**
+     * Queries the {@code tiles} table for a single tile by zoom/x/y.
+     * Converts osmdroid XYZ Y coordinate to TMS Y (Y-flip: {@code tmsY = 2^z - 1 - osmY}).
+     *
+     * @return {@link ByteArrayInputStream} of the tile blob, or null if not found.
+     */
     @Override
     public InputStream getInputStream(ITileSource pTileSource, long pMapTileIndex) {
         if (db == null || !db.isOpen()) return null;
@@ -77,6 +96,7 @@ public class MBTilesArchive implements IArchiveFile {
         }
     }
 
+    /** MBTiles archives are single-source; returns an empty set as required by the interface. */
     @Override
     public Set<String> getTileSources() {
         return Collections.emptySet();

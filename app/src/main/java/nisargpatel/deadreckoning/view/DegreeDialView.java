@@ -14,6 +14,11 @@ import androidx.core.content.ContextCompat;
 
 import nisargpatel.deadreckoning.R;
 
+/**
+ * Circular compass dial view that lets the user rotate a heading pointer by dragging.
+ * Draws tick marks every 10° (bolder every 30°) with degree labels and a filled triangle arrow.
+ * Notifies {@link OnDegreeChangedListener} on every drag update.
+ */
 public class DegreeDialView extends View {
 
     private Paint circlePaint;
@@ -35,7 +40,9 @@ public class DegreeDialView extends View {
     private float lastTouchAngle = 0;
     private boolean isDragging = false;
 
+    /** Callback fired each time the dial is rotated by the user. */
     public interface OnDegreeChangedListener {
+        /** @param degree New heading (°) in [0, 360). */
         void onDegreeChanged(float degree);
     }
 
@@ -86,16 +93,23 @@ public class DegreeDialView extends View {
         gestureDetector = new GestureDetector(context, new GestureListener());
     }
 
+    /** Registers the callback that receives degree updates on drag. */
     public void setOnDegreeChangedListener(OnDegreeChangedListener listener) {
         this.listener = listener;
     }
 
+    /**
+     * Programmatically sets the displayed heading and redraws the dial.
+     *
+     * @param degree Heading (°); normalised to [0, 360) internally.
+     */
     public void setDegree(float degree) {
         this.currentDegree = degree % 360;
         if (this.currentDegree < 0) this.currentDegree += 360;
         invalidate();
     }
 
+    /** @return Current heading (°) in [0, 360). */
     public float getDegree() {
         return currentDegree;
     }

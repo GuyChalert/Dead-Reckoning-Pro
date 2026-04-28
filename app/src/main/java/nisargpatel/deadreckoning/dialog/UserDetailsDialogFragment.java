@@ -18,6 +18,14 @@ import nisargpatel.deadreckoning.R;
 import nisargpatel.deadreckoning.activity.StepCalibrationActivity;
 import nisargpatel.deadreckoning.interfaces.OnUserUpdateListener;
 
+/**
+ * Dialog for creating or editing a user profile (name + stride length).
+ * In add-user mode ({@link #setAddingUser(boolean) addingUser=true}) the name field is editable;
+ * in edit mode it is locked to the existing {@link #setUserName(String) userName}.
+ * "Stride Length Calc" launches {@link StepCalibrationActivity} to measure stride automatically.
+ * On confirmation, fires {@link OnUserUpdateListener#onUserUpdateListener(Bundle)} with
+ * {@link #USER_TAG}, {@link #STRIDE_LENGTH_TAG}, and optionally {@link #PREFERRED_STEP_COUNTER}.
+ */
 public class UserDetailsDialogFragment extends DialogFragment {
 
     public static final String USER_TAG = "USER";
@@ -118,22 +126,30 @@ public class UserDetailsDialogFragment extends DialogFragment {
         return alertDialogBuilder.create();
     }
 
+    /** @param onUserUpdateListener Receives the validated user Bundle on confirmation. */
     public void setOnUserUpdateListener(OnUserUpdateListener onUserUpdateListener) {
         this.onUserUpdateListener = onUserUpdateListener;
     }
 
+    /**
+     * @param addingUser {@code true} to allow name entry (new user);
+     *                   {@code false} to lock the name field to the existing user.
+     */
     public void setAddingUser(boolean addingUser) {
         this.addingUser = addingUser;
     }
 
+    /** @param userName Existing user name pre-filled in the (locked) name field when editing. */
     public void setUserName(String userName) {
         this.userName = userName;
     }
 
+    /** @return {@code true} if {@code strideLength} is empty. */
     private boolean checkInvalidStrideLength(String strideLength) {
         return strideLength.length() == 0;
     }
 
+    /** @return {@code true} if {@code userName} is empty. */
     private boolean checkInvalidUserName(String userName) {
         return userName.length() == 0;
     }

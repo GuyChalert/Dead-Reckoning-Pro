@@ -39,6 +39,11 @@ public class BoundingBoxOverlay extends Overlay {
     private float lastTouchX, lastTouchY;
     private final float handleRadiusPx;
 
+    /**
+     * @param initial Initial geographic bounding box to display.
+     * @param density Display density from {@link android.util.DisplayMetrics#density},
+     *                used to convert DP sizes to pixels.
+     */
     public BoundingBoxOverlay(BoundingBox initial, float density) {
         northWest = new GeoPoint(initial.getLatNorth(), initial.getLonWest());
         southEast = new GeoPoint(initial.getLatSouth(), initial.getLonEast());
@@ -59,6 +64,12 @@ public class BoundingBoxOverlay extends Overlay {
         handleRing.setStrokeWidth(STROKE_WIDTH_DP * density);
     }
 
+    /**
+     * Returns the current bounding box after any user drag operations.
+     * Always normalises so latN ≥ latS and lonE ≥ lonW regardless of corner drag direction.
+     *
+     * @return Current geographic bounding box in decimal degrees (WGS-84).
+     */
     public BoundingBox getBoundingBox() {
         double latN = Math.max(northWest.getLatitude(),  southEast.getLatitude());
         double latS = Math.min(northWest.getLatitude(),  southEast.getLatitude());
@@ -88,6 +99,13 @@ public class BoundingBoxOverlay extends Overlay {
         drawHandle(canvas, right, bottom);
     }
 
+    /**
+     * Draws a single corner-resize handle (white circle with blue ring) at screen position.
+     *
+     * @param c Canvas to draw on.
+     * @param x Screen X coordinate in pixels (px).
+     * @param y Screen Y coordinate in pixels (px).
+     */
     private void drawHandle(Canvas c, float x, float y) {
         c.drawCircle(x, y, handleRadiusPx, handlePaint);
         c.drawCircle(x, y, handleRadiusPx, handleRing);
@@ -128,6 +146,14 @@ public class BoundingBoxOverlay extends Overlay {
         return false;
     }
 
+    /**
+     * Determines which drag mode a touch position activates.
+     * Corner handles take priority; interior box triggers WHOLE move.
+     *
+     * @param x Touch X in screen pixels (px).
+     * @param y Touch Y in screen pixels (px).
+     * @return Drag mode, or {@link Drag#NONE} if the touch is outside the overlay.
+     */
     private Drag hitTest(float x, float y) {
         float left   = Math.min(pNW.x, pSE.x);
         float top    = Math.min(pNW.y, pSE.y);
@@ -143,10 +169,22 @@ public class BoundingBoxOverlay extends Overlay {
         return Drag.NONE;
     }
 
+    /**
+     * @return {@code true} if point (ax,ay) is within {@code thresh} pixels of (bx,by).
+     */
     private boolean near(float ax, float ay, float bx, float by, float thresh) {
         return Math.abs(ax - bx) < thresh && Math.abs(ay - by) < thresh;
     }
 
+    /**
+     * Translates a pixel drag delta to a geographic coordinate change and applies
+     * it to the appropriate corner(s) based on {@link #dragMode}.
+     * Uses two projection lookups to convert pixels to degrees accurately.
+     *
+     * @param dx   Horizontal drag delta in screen pixels (px); positive = right.
+     * @param dy   Vertical drag delta in screen pixels (px); positive = down.
+     * @param proj Current map projection for pixel-to-geo conversion.
+     */
     private void applyDrag(float dx, float dy, Projection proj) {
         // Convert a pixel delta to a geo delta via two projection lookups.
         GeoPoint origin = (GeoPoint) proj.fromPixels(0, 0);

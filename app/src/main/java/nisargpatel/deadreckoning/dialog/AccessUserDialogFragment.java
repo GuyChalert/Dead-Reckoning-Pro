@@ -10,6 +10,10 @@ import android.os.Bundle;
 import nisargpatel.deadreckoning.R;
 import nisargpatel.deadreckoning.activity.UserActivity;
 
+/**
+ * Confirmation dialog that offers to navigate to {@link UserActivity} for a specific user.
+ * Shows the user name and stride length; "OK" starts the activity, "Cancel" dismisses.
+ */
 public class AccessUserDialogFragment extends DialogFragment {
 
     private String userName;
@@ -48,10 +52,12 @@ public class AccessUserDialogFragment extends DialogFragment {
     }
 
 
+    /** @param userName Display name shown in the dialog message and passed to {@link UserActivity}. */
     public void setUserName(String userName) {
         this.userName = userName;
     }
 
+    /** @param strideLength Stride length string passed as an extra to {@link UserActivity}. */
     public void setStrideLength(String strideLength) {
         this.strideLength = strideLength;
     }

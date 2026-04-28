@@ -9,7 +9,7 @@ import androidx.fragment.app.DialogFragment;
 
 import nisargpatel.deadreckoning.R;
 
-//creating a new DialogFragment to output a message
+/** Generic one-button info dialog; set the body text with {@link #setDialogMessage(String)}. */
 public class StepInfoDialogFragment extends DialogFragment{
 
     private String message;
@@ -31,7 +31,7 @@ public class StepInfoDialogFragment extends DialogFragment{
         return dialogBuilder.create();
     }
 
-    //get the message to be outputted by the DialogFragment
+    /** @param message Body text to display; must be set before {@link #show}. */
     public void setDialogMessage(String message) {
         this.message = message;
     }

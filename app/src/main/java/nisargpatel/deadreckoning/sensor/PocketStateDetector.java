@@ -32,8 +32,11 @@ public class PocketStateDetector {
     private State state = State.HANDHELD_MAPPING;
 
     /**
-     * Call on every TYPE_ACCELEROMETER event (not LINEAR_ACCELERATION — gravity needed).
-     * Thread-safe: call from sensor thread; read state from any thread.
+     * Processes one TYPE_ACCELEROMETER event (gravity retained — do not use
+     * TYPE_LINEAR_ACCELERATION). Thread-safe: call from sensor thread; read
+     * state from any thread.
+     *
+     * @param accel Raw accelerometer reading [x, y, z] in m/s² (gravity included).
      */
     public synchronized void update(float[] accel) {
         buf.addLast(new float[]{accel[0], accel[1], accel[2]});
@@ -41,6 +44,12 @@ public class PocketStateDetector {
         if (buf.size() == WINDOW) classify();
     }
 
+    /**
+     * Classifies the current carry state from the buffered samples.
+     * Computes total variance and pitch angle over the {@link #WINDOW} sample window.
+     * State changes require {@link #HYSTERESIS_COUNT} consecutive opposite-state samples
+     * to prevent flickering with each gait step.
+     */
     private void classify() {
         double mx = 0, my = 0, mz = 0;
         for (float[] s : buf) { mx += s[0]; my += s[1]; mz += s[2]; }
@@ -73,6 +82,9 @@ public class PocketStateDetector {
         }
     }
 
+    /** @return Current carry-state classification (thread-safe). */
     public synchronized State getState() { return state; }
+
+    /** @return {@code true} if the phone is classified as pocket walking. */
     public synchronized boolean isPocketMode() { return state == State.POCKET_WALKING; }
 }

@@ -16,6 +16,12 @@ import nisargpatel.deadreckoning.dialog.UserDetailsDialogFragment;
 import nisargpatel.deadreckoning.extra.ExtraFunctions;
 import nisargpatel.deadreckoning.interfaces.OnUserUpdateListener;
 
+/**
+ * Detail screen for a single user profile showing name and stride length.
+ * The overflow menu offers a delete-user action; the calibration button opens
+ * {@link UserDetailsDialogFragment} to edit the stride length.
+ * Profile data is persisted in SharedPreferences via {@link ExtraFunctions} array helpers.
+ */
 public class UserActivity extends AppCompatActivity implements OnUserUpdateListener {
 
     private static final int REQUEST_CODE = 0;
@@ -122,12 +128,14 @@ public class UserActivity extends AppCompatActivity implements OnUserUpdateListe
         }
     }
 
+    /** Persists all three user arrays (names, strides, preferred step counters) to SharedPreferences. */
     private void updatePrefs() {
         ExtraFunctions.addArrayToSharedPreferences("user_list", userList, sharedPreferencesEditor);
         ExtraFunctions.addArrayToSharedPreferences("stride_list", strideList, sharedPreferencesEditor);
         ExtraFunctions.addArrayToSharedPreferences("preferred_step_counter", preferredStepCounterList, sharedPreferencesEditor);
     }
 
+    /** Displays at most 3 characters of {@code strideLength} to keep the UI compact; falls back to "0". */
     private void setStrideLengthText(String strideLength) {
         if (strideLength != null && strideLength.length() > 3)
             textStrideLength.setText(strideLength.substring(0,3));

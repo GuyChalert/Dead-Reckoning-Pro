@@ -19,6 +19,17 @@ import nisargpatel.deadreckoning.orientation.GyroscopeDeltaOrientation;
 import nisargpatel.deadreckoning.orientation.GyroscopeEulerOrientation;
 import nisargpatel.deadreckoning.orientation.MagneticFieldOrientation;
 
+/**
+ * Debug activity for comparing heading estimation algorithms side-by-side:
+ * <ul>
+ *   <li>Android-calibrated gyroscope integration ({@link GyroscopeDeltaOrientation})</li>
+ *   <li>Uncalibrated gyroscope with manual bias estimation ({@link GyroscopeBias} + delta integration)</li>
+ *   <li>Two {@link GyroscopeEulerOrientation} DCM integrations (identity and mag-initialised)</li>
+ *   <li>Magnetometer heading ({@link MagneticFieldOrientation})</li>
+ *   <li>Complementary filter combining mag and DCM (2%/98%)</li>
+ * </ul>
+ * Sensors stream continuously from {@code onCreate}; heading integration starts only on "Start".
+ */
 public class HeadingActivity extends AppCompatActivity implements SensorEventListener{
 
     private static final float EULER_GYROSCOPE_SENSITIVITY = 0.0025f;

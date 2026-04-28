@@ -59,6 +59,7 @@ public class TunnelMapExporter {
 
     // ------------------------------------------------------------------
 
+    /** Builds a GeoJSON FeatureCollection with a LineString from the corrected path points. */
     private static String buildGeoJson(List<GeoPoint> pts, GraphSlamEngine slam) {
         StringBuilder coords = new StringBuilder();
         for (int i = 0; i < pts.size(); i++) {
@@ -86,6 +87,7 @@ public class TunnelMapExporter {
             + "}\n";
     }
 
+    /** Builds a KML document with a single red {@code LineString} placemark ({@code #line} style). */
     private static String buildKml(List<GeoPoint> pts, String name) {
         StringBuilder coords = new StringBuilder();
         for (GeoPoint p : pts) {
@@ -111,6 +113,10 @@ public class TunnelMapExporter {
             + "</kml>\n";
     }
 
+    /**
+     * Builds a CSV with columns: node_id, latitude (°), longitude (°), east_m (m), north_m (m),
+     * heading_deg (°). One row per SLAM keyframe node.
+     */
     private static String buildCsv(GraphSlamEngine slam) {
         StringBuilder sb = new StringBuilder();
         sb.append("node_id,latitude,longitude,east_m,north_m,heading_deg\n");
@@ -124,6 +130,7 @@ public class TunnelMapExporter {
         return sb.toString();
     }
 
+    /** Returns the exports directory, creating it if necessary; falls back to internal files dir. */
     private static File getExportDir(Context ctx) {
         File dir = ctx.getExternalFilesDir("exports");
         if (dir != null && !dir.exists()) dir.mkdirs();

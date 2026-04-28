@@ -13,6 +13,11 @@ import java.util.HashMap;
 
 import nisargpatel.deadreckoning.extra.ExtraFunctions;
 
+/**
+ * Creates and writes to timestamped text files on external storage.
+ * Files are grouped under a named folder and each write appends a line.
+ * Multiple named files can be managed simultaneously via a {@code filename → File} map.
+ */
 public class DataFileWriter {
 
     private BufferedWriter bufferedWriter;
@@ -24,12 +29,26 @@ public class DataFileWriter {
         folderName = null;
     }
 
+    /**
+     * Creates a writer that immediately creates all named files with their column headings.
+     *
+     * @param folderName   Subdirectory under external storage root.
+     * @param fileNames    Logical names used as keys and as filename prefixes.
+     * @param fileHeadings Header line written to each file on creation.
+     * @throws IOException if a file cannot be created.
+     */
     public DataFileWriter(String folderName, ArrayList<String> fileNames, ArrayList<String> fileHeadings) throws IOException {
         this();
         this.folderName = folderName;
         createFiles(fileNames, fileHeadings);
     }
 
+    /**
+     * Array-overload of {@link #DataFileWriter(String, ArrayList, ArrayList)}.
+     *
+     * @param fileNames    Array of logical file names.
+     * @param fileHeadings Array of header lines, parallel to {@code fileNames}.
+     */
     public DataFileWriter(String folderName, String[] fileNames, String[] fileHeadings) throws IOException {
         this();
         this.folderName = folderName;
@@ -53,6 +72,13 @@ public class DataFileWriter {
         }
     }
 
+    /**
+     * Creates a single timestamped file and registers it under {@code fileName}.
+     *
+     * @param fileName    Logical key and filename prefix.
+     * @param fileHeading First line written to the new file.
+     * @throws IOException if the file cannot be created.
+     */
     public void createFile(String fileName, String fileHeading) throws IOException {
 
         String folderPath = getFolder().getPath();
@@ -94,6 +120,12 @@ public class DataFileWriter {
     }
 
     //overridden write methods
+    /**
+     * Appends a semicolon-separated row of float values followed by a newline.
+     *
+     * @param fileName Logical file key registered via {@link #createFile}.
+     * @param values   Values to write on one line.
+     */
     public void writeToFile(String fileName, ArrayList<Float> values) {
         File file = files.get(fileName);
         try {
@@ -107,6 +139,12 @@ public class DataFileWriter {
         }
     }
 
+    /**
+     * Appends a string line followed by a platform newline.
+     *
+     * @param fileName Logical file key.
+     * @param line     Text to write.
+     */
     public void writeToFile(String fileName, String line) {
         File file = files.get(fileName);
         try {
@@ -119,6 +157,7 @@ public class DataFileWriter {
         }
     }
 
+    /** Varargs overload: packs floats into a list and delegates to {@link #writeToFile(String, ArrayList)}. */
     public void writeToFile(String fileName, float... args) {
         ArrayList<Float> values = new ArrayList<>();
         for (float arg : args)

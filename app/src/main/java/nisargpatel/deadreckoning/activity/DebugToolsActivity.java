@@ -9,6 +9,11 @@ import android.widget.ListView;
 
 import nisargpatel.deadreckoning.R;
 
+/**
+ * Developer menu that exposes three debug screens:
+ * "Step Counter" → {@link StepCountActivity}, "Heading Test" → {@link HeadingActivity},
+ * "Data Collector" → {@link DataCollectActivity}.
+ */
 public class DebugToolsActivity extends ListActivity {
 
     private static final String[] debugToolsList = {"Step Counter", "Heading Test", "Data Collector"};

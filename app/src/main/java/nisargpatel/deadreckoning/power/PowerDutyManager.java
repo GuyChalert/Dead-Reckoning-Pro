@@ -50,6 +50,10 @@ public class PowerDutyManager {
     private boolean torchEnabled   = false; // off by default; enable via settings
     private String  torchCameraId  = null;
 
+    /**
+     * @param window        Activity window used for brightness control.
+     * @param cameraManager System {@link CameraManager} for torch control; may be null.
+     */
     public PowerDutyManager(Window window, CameraManager cameraManager) {
         this.window        = window;
         this.cameraManager = cameraManager;
@@ -60,12 +64,20 @@ public class PowerDutyManager {
     // Control
     // ------------------------------------------------------------------
 
+    /**
+     * Notifies that the tracking session started or stopped.
+     * Turns off the torch when tracking stops; turns it on in HANDHELD_MAPPING mode when it starts.
+     */
     public void setTrackingActive(boolean active) {
         trackingActive = active;
         if (!active) setTorchSafe(false);
         else if (currentState == State.HANDHELD_MAPPING) setTorchSafe(true);
     }
 
+    /**
+     * Enables or disables the torch feature (user preference toggle).
+     * When disabled, immediately turns off the torch regardless of state.
+     */
     public void setTorchEnabled(boolean enabled) {
         torchEnabled = enabled;
         if (!enabled) setTorchSafe(false);
@@ -85,10 +97,14 @@ public class PowerDutyManager {
         for (StateListener l : listeners) l.onStateChanged(next);
     }
 
+    /** Registers a listener for duty-cycle state changes. */
     public void addListener(StateListener l) { listeners.add(l); }
+    /** Unregisters a previously added state-change listener. */
     public void removeListener(StateListener l) { listeners.remove(l); }
 
+    /** @return Current duty-cycle state. */
     public State getState() { return currentState; }
+    /** @return {@code true} if currently in {@link State#POCKET_WALKING} mode. */
     public boolean isPocketMode() { return currentState == State.POCKET_WALKING; }
 
     /** Call from Fragment.onDestroyView() to restore brightness and kill torch. */
@@ -100,6 +116,7 @@ public class PowerDutyManager {
     // Internal
     // ------------------------------------------------------------------
 
+    /** Applies torch and brightness changes for the new {@link #currentState}. */
     private void applyState() {
         if (currentState == State.POCKET_WALKING) {
             setTorchSafe(false);
@@ -108,12 +125,19 @@ public class PowerDutyManager {
         }
     }
 
+    /**
+     * Sets window screen brightness.
+     *
+     * @param b {@link WindowManager.LayoutParams#BRIGHTNESS_OVERRIDE_NONE} (−1) for system default,
+     *          or [0.0, 1.0] for explicit brightness.
+     */
     private void setBrightness(float b) {
         WindowManager.LayoutParams lp = window.getAttributes();
         lp.screenBrightness = b;
         window.setAttributes(lp);
     }
 
+    /** Calls {@link CameraManager#setTorchMode}; no-op if torch camera not found or feature disabled. */
     private void setTorchSafe(boolean on) {
         if (torchCameraId == null) return;
         if (on && !torchEnabled) return;
@@ -122,6 +146,7 @@ public class PowerDutyManager {
         } catch (Exception ignored) {}
     }
 
+    /** Finds and caches the first camera ID that has a hardware flashlight. */
     private void cacheTorchId() {
         if (cameraManager == null) return;
         try {

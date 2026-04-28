@@ -23,6 +23,11 @@ import nisargpatel.deadreckoning.extra.ExtraFunctions;
 import nisargpatel.deadreckoning.filewriting.DataFileWriter;
 import nisargpatel.deadreckoning.bias.MagneticFieldBias;
 
+/**
+ * DialogFragment that collects uncalibrated magnetic-field samples for hard-iron bias calibration.
+ * Sampling starts when the user taps "Start Calibration" and stops on "Stop Calibration".
+ * Sends message 0 to the parent handler when dismissed so the gyro calibration dialog can follow.
+ */
 public class MagCalibrationDialogFragment extends DialogFragment implements SensorEventListener{
 
     private DataFileWriter dataFileWriter;
@@ -47,6 +52,7 @@ public class MagCalibrationDialogFragment extends DialogFragment implements Sens
 
 
 
+    /** @param handler Receives message 0 when mag bias collection is stopped by the user. */
     public void setHandler(Handler handler) {
         this.handler = handler;
     }
@@ -111,6 +117,10 @@ public class MagCalibrationDialogFragment extends DialogFragment implements Sens
     @Override
     public void onAccuracyChanged(Sensor sensor, int accuracy) {}
 
+    /**
+     * Feeds every TYPE_MAGNETIC_FIELD_UNCALIBRATED event to {@link MagneticFieldBias#calcBias}
+     * and logs the raw values (μT) to file until the user stops calibration.
+     */
     @Override
     public void onSensorChanged(SensorEvent event) {
 
@@ -130,12 +140,14 @@ public class MagCalibrationDialogFragment extends DialogFragment implements Sens
 
     }
 
+    /** Unregisters the sensor, notifies the parent handler (message 0), and dismisses. */
     private void dismissDialog() {
         sensorManager.unregisterListener(this);
         handler.sendEmptyMessage(0);
         dismiss();
     }
 
+    /** @return Calibrated hard-iron bias vector [x, y, z] (μT). */
     public float[] getMagBias() {
         return magneticFieldBias.getBias();
     }

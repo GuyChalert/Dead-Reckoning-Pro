@@ -18,6 +18,12 @@ public class WmsTileSource extends OnlineTileSourceBase {
     private final String layerName;
     private final String format;
 
+    /**
+     * @param id        Unique tile-source identifier for osmdroid's cache key.
+     * @param baseUrl   WMS service endpoint URL.
+     * @param layerName Layer name for the {@code LAYERS} parameter.
+     * @param format    MIME tile format (e.g. {@code "image/png"}).
+     */
     public WmsTileSource(String id, String baseUrl, String layerName, String format) {
         super(id, 0, 19, 256, ".png", new String[]{baseUrl});
         this.baseUrl    = baseUrl;
@@ -25,6 +31,13 @@ public class WmsTileSource extends OnlineTileSourceBase {
         this.format     = format;
     }
 
+    /**
+     * Builds a WMS 1.1.1 GetMap URL for a tile, computing the Web-Mercator
+     * bounding box (EPSG:3857) from the tile's zoom/x/y coordinates.
+     *
+     * @param pMapTileIndex Packed osmdroid tile index (zoom/x/y).
+     * @return Complete GetMap URL for the 256×256 px tile.
+     */
     @Override
     public String getTileURLString(long pMapTileIndex) {
         int z = MapTileIndex.getZoom(pMapTileIndex);

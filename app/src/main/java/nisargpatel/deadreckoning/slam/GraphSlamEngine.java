@@ -156,22 +156,31 @@ public class GraphSlamEngine {
         return pts;
     }
 
+    /** @return SLAM-optimised East position of the most recent keyframe node (m). */
     public synchronized double getCurrentX() {
         return graph.nodeCount() > 0 ? graph.nodes.get(graph.nodeCount()-1).x : 0;
     }
 
+    /** @return SLAM-optimised North position of the most recent keyframe node (m). */
     public synchronized double getCurrentY() {
         return graph.nodeCount() > 0 ? graph.nodes.get(graph.nodeCount()-1).y : 0;
     }
 
+    /**
+     * @return Heading of the most recent keyframe node in radians (rad);
+     *         0 = North, clockwise positive.
+     */
     public synchronized double getCurrentHeading() {
         return graph.nodeCount() > 0 ? graph.nodes.get(graph.nodeCount()-1).theta : 0;
     }
 
+    /** @return Cumulative PDR path length since session start in meters (m). */
     public synchronized double getTotalPathMetres() { return totalPathMetres; }
 
+    /** @return Number of keyframe nodes in the pose graph. */
     public synchronized int getNodeCount() { return graph.nodeCount(); }
 
+    /** @return {@code true} after the first GPS fix has been received and the ENZ origin set. */
     public boolean hasOrigin() { return hasOrigin; }
 
     /** Unmodifiable view of pose nodes (for export / loop-closure detection). */
@@ -188,6 +197,11 @@ public class GraphSlamEngine {
     // Internal helpers
     // ------------------------------------------------------------------
 
+    /**
+     * Converts accumulated odometry into a new keyframe node and ODOMETRY edge.
+     * Triggers automatic LM optimisation every {@link #OPTIMIZE_EVERY_NODES} nodes.
+     * No-op if no steps have been accumulated or the graph is empty.
+     */
     private void flushAccumulated() {
         if (stepsAccum == 0 || graph.nodeCount() == 0) return;
 
@@ -219,7 +233,13 @@ public class GraphSlamEngine {
         }
     }
 
-    /** GPS (lat, lon) → local ENZ (x=east, y=north) in metres. */
+    /**
+     * Converts WGS-84 coordinates to local ENZ using the flat-Earth approximation.
+     *
+     * @param lat Latitude in decimal degrees (WGS-84).
+     * @param lon Longitude in decimal degrees (WGS-84).
+     * @return {@code [x, y]} where x = East (m), y = North (m) from ENZ origin.
+     */
     private double[] gpsToEnz(double lat, double lon) {
         final double R = 6_371_000.0;
         double dLat = Math.toRadians(lat - originLat);
@@ -230,7 +250,13 @@ public class GraphSlamEngine {
         return new double[]{x, y};
     }
 
-    /** Local ENZ → GPS (lat, lon). */
+    /**
+     * Converts local ENZ displacement back to WGS-84 coordinates.
+     *
+     * @param x East displacement from ENZ origin in meters (m).
+     * @param y North displacement from ENZ origin in meters (m).
+     * @return {@code [lat, lon]} in decimal degrees (WGS-84).
+     */
     private double[] enzToGps(double x, double y) {
         final double R = 6_371_000.0;
         double cosLat = Math.cos(Math.toRadians(originLat));

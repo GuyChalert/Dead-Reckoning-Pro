@@ -16,6 +16,10 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
+/**
+ * Persists {@link nisargpatel.deadreckoning.model.Trip} records as a JSON array in SharedPreferences
+ * and exports individual trips as CSV or GPX files to {@code getExternalFilesDir/DeadReckoning/Exports}.
+ */
 public class TripStorage {
     
     private static final String PREFS_NAME = "TripStorage";
@@ -32,6 +36,7 @@ public class TripStorage {
         this.gson = new Gson();
     }
     
+    /** Upserts a trip: removes any existing entry with the same ID, then appends the new one. */
     public void saveTrip(Trip trip) {
         List<Trip> trips = getAllTrips();
         
@@ -44,6 +49,7 @@ public class TripStorage {
         prefs.edit().putString(TRIPS_KEY, json).apply();
     }
     
+    /** @return Mutable list of all persisted trips, or an empty list if none exist. */
     public List<Trip> getAllTrips() {
         String json = prefs.getString(TRIPS_KEY, "[]");
         Type type = new TypeToken<ArrayList<Trip>>(){}.getType();
@@ -51,6 +57,7 @@ public class TripStorage {
         return trips != null ? trips : new ArrayList<>();
     }
     
+    /** @return The trip with the given {@code id}, or null if not found. */
     public Trip getTrip(String id) {
         List<Trip> trips = getAllTrips();
         for (Trip trip : trips) {
@@ -61,6 +68,7 @@ public class TripStorage {
         return null;
     }
     
+    /** Removes the trip with the given {@code id} from the persisted list. */
     public void deleteTrip(String id) {
         List<Trip> trips = getAllTrips();
         trips.removeIf(t -> t.getId().equals(id));
@@ -69,10 +77,17 @@ public class TripStorage {
         prefs.edit().putString(TRIPS_KEY, json).apply();
     }
     
+    /** Deletes all trips from SharedPreferences. */
     public void clearAllTrips() {
         prefs.edit().remove(TRIPS_KEY).apply();
     }
     
+    /**
+     * Writes the trip as a CSV file to the exports folder.
+     *
+     * @return Absolute path of the created CSV file.
+     * @throws IOException if the directory cannot be created or the file cannot be written.
+     */
     public String exportToCSV(Trip trip) throws IOException {
         File exportDir = new File(context.getExternalFilesDir(null), EXPORT_FOLDER);
         if (!exportDir.exists()) {
@@ -90,6 +105,12 @@ public class TripStorage {
         return file.getAbsolutePath();
     }
     
+    /**
+     * Writes the trip as a GPX file to the exports folder.
+     *
+     * @return Absolute path of the created GPX file.
+     * @throws IOException if the directory cannot be created or the file cannot be written.
+     */
     public String exportToGPX(Trip trip) throws IOException {
         File exportDir = new File(context.getExternalFilesDir(null), EXPORT_FOLDER);
         if (!exportDir.exists()) {
@@ -107,6 +128,11 @@ public class TripStorage {
         return file.getAbsolutePath();
     }
     
+    /**
+     * Returns the {@code count} most recent trips sorted by start time, newest first.
+     *
+     * @param count Maximum number of trips to return.
+     */
     public List<Trip> getRecentTrips(int count) {
         List<Trip> trips = getAllTrips();
         trips.sort((t1, t2) -> Long.compare(t2.getStartTime(), t1.getStartTime()));
@@ -114,10 +140,12 @@ public class TripStorage {
         return trips.subList(0, Math.min(count, trips.size()));
     }
     
+    /** @return Total number of persisted trips. */
     public int getTotalTrips() {
         return getAllTrips().size();
     }
     
+    /** @return Sum of {@link nisargpatel.deadreckoning.model.Trip#getTotalDistance()} across all trips (m). */
     public double getTotalDistance() {
         double total = 0;
         for (Trip trip : getAllTrips()) {
@@ -126,6 +154,7 @@ public class TripStorage {
         return total;
     }
     
+    /** @return Sum of step counts across all stored trips. */
     public int getTotalSteps() {
         int total = 0;
         for (Trip trip : getAllTrips()) {

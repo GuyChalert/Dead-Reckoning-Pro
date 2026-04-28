@@ -19,6 +19,13 @@ public class PoseNode {
     public final long timestamp;
     public boolean    isFixed;
 
+    /**
+     * @param id        Unique node index (0-based, assigned by {@link GraphSlamEngine}).
+     * @param x         East displacement from ENZ origin in meters (m).
+     * @param y         North displacement from ENZ origin in meters (m).
+     * @param theta     Heading in radians (rad); 0 = North, clockwise positive.
+     * @param timestamp Wall-clock creation time in nanoseconds (ns).
+     */
     public PoseNode(int id, double x, double y, double theta, long timestamp) {
         this.id        = id;
         this.x         = x;

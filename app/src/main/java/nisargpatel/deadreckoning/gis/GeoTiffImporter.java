@@ -34,6 +34,15 @@ public class GeoTiffImporter {
     private static final CoordinateReferenceSystem  WGS84 =
             crsFactory.createFromName("epsg:4326");
 
+    /**
+     * Reads and decodes a GeoTIFF from a SAF URI into a georeferenced {@link RasterOverlay}.
+     * Extracts the bounding box from ModelTiepoint+ModelPixelScale (tag 33922/33550) or
+     * ModelTransformation (tag 34264), then reprojects from the file's EPSG CRS to WGS-84.
+     * Downsamples so that neither dimension exceeds {@link #MAX_SIDE} pixels.
+     *
+     * @throws IOException if the URI cannot be opened, TIFF dimensions are missing,
+     *                     or georef tags are absent.
+     */
     public static RasterOverlay load(Context context, Uri uri) throws IOException {
         byte[] bytes;
         try (InputStream in = context.getContentResolver().openInputStream(uri)) {
@@ -131,6 +140,7 @@ public class GeoTiffImporter {
         return new RasterOverlay(bitmap, bbox);
     }
 
+    /** Projects a single (x, y) coordinate using the given transform; returns the result. */
     private static ProjCoordinate reproject(CoordinateTransform xf, double x, double y) {
         ProjCoordinate src = new ProjCoordinate(x, y);
         ProjCoordinate dst = new ProjCoordinate();
@@ -138,6 +148,13 @@ public class GeoTiffImporter {
         return dst;
     }
 
+    /**
+     * Reads a TIFF tag value as a {@code double[]} array, handling List, double[], and Number[] types.
+     * Package-private so {@link GeoKeyReader} tests can call it.
+     *
+     * @param tagId TIFF tag identifier (e.g. 33922 for ModelTiepoint).
+     * @return Array of doubles, or null if the tag is absent or its type is unrecognised.
+     */
     static double[] getDoubleList(FileDirectory dir, int tagId) {
         try {
             FieldTagType tag = FieldTagType.getById(tagId);
@@ -162,6 +179,10 @@ public class GeoTiffImporter {
         return null;
     }
 
+    /**
+     * Normalises a raw TIFF sample to an 8-bit value [0, 255].
+     * 16-bit samples are right-shifted by 8; 8-bit values are masked; others are clamped.
+     */
     private static int clamp(int val, int bits) {
         if (bits <= 0 || bits == 8) return val & 0xFF;
         if (bits == 16) return (val >>> 8) & 0xFF;

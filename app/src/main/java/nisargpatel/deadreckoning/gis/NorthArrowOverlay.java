@@ -37,6 +37,10 @@ public class NorthArrowOverlay extends Overlay {
 
     private int cx, cy;
 
+    /**
+     * @param context Android context used to resolve display density.
+     * @param mapView The parent map view; used to read current map orientation (°).
+     */
     public NorthArrowOverlay(Context context, MapView mapView) {
         this.mapView = mapView;
         float d = context.getResources().getDisplayMetrics().density;
@@ -76,6 +80,11 @@ public class NorthArrowOverlay extends Overlay {
         textPaint.setTextAlign(Paint.Align.CENTER);
     }
 
+    /**
+     * Draws the north-arrow compass widget in the bottom-left corner of the map.
+     * Undoes osmdroid's canvas pre-rotation so the widget stays in a fixed screen
+     * position, then counter-rotates the arrow so the red tip always points north.
+     */
     @Override
     public void draw(Canvas canvas, Projection projection) {
         float rotation = mapView.getMapOrientation();
@@ -130,6 +139,11 @@ public class NorthArrowOverlay extends Overlay {
         canvas.restore();
     }
 
+    /**
+     * Resets map orientation to 0° (north-up) when the user taps inside the arrow widget.
+     *
+     * @return {@code true} if the tap was inside the widget and consumed; {@code false} otherwise.
+     */
     @Override
     public boolean onSingleTapConfirmed(MotionEvent e, MapView mapView) {
         float dx = e.getX() - cx;

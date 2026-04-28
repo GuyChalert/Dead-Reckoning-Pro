@@ -15,6 +15,10 @@ import java.util.List;
 import nisargpatel.deadreckoning.R;
 import nisargpatel.deadreckoning.model.GuideItem;
 
+/**
+ * RecyclerView adapter for the tutorial guide list.
+ * Each item shows an icon, a title, and body text with auto-linkified URLs.
+ */
 public class GuideAdapter extends RecyclerView.Adapter<GuideAdapter.GuideViewHolder> {
 
     private List<GuideItem> items;
@@ -42,6 +46,7 @@ public class GuideAdapter extends RecyclerView.Adapter<GuideAdapter.GuideViewHol
         return items.size();
     }
 
+    /** Replaces the item list and triggers a full rebind. */
     public void updateItems(List<GuideItem> items) {
         this.items = items;
         notifyDataSetChanged();

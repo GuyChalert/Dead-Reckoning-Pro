@@ -17,6 +17,10 @@ import nisargpatel.deadreckoning.R;
 import nisargpatel.deadreckoning.adapter.GuideAdapter;
 import nisargpatel.deadreckoning.model.GuideItem;
 
+/**
+ * Read-only guide activity that displays a scrollable list of tutorial cards via {@link GuideAdapter}.
+ * All content is built in-code in {@link #loadGuideItems()}; no network or storage access needed.
+ */
 public class GuideActivity extends AppCompatActivity {
 
     private RecyclerView recyclerView;
@@ -44,6 +48,7 @@ public class GuideActivity extends AppCompatActivity {
         toolbar.setNavigationOnClickListener(v -> finish());
     }
 
+    /** Builds and submits all static guide cards (dead reckoning, turns, GPS, export, tips, etc.). */
     private void loadGuideItems() {
         List<GuideItem> items = new ArrayList<>();
 

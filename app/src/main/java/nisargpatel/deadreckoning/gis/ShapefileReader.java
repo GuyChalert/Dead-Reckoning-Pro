@@ -93,6 +93,12 @@ class ShapefileReader {
         return features;
     }
 
+    /**
+     * Parses a Point record content buffer.
+     *
+     * @param buf Little-endian buffer positioned at shape-type (offset 0).
+     * @return Feature with one ring containing one [x, y] pair.
+     */
     private static Feature readPoint(ByteBuffer buf) {
         double x = buf.getDouble(4);
         double y = buf.getDouble(12);
@@ -101,6 +107,14 @@ class ShapefileReader {
         return new Feature(TYPE_POINT, rings);
     }
 
+    /**
+     * Parses a PolyLine (3) or Polygon (5) record content buffer.
+     * Each part becomes a separate ring in the returned feature.
+     *
+     * @param buf       Little-endian buffer positioned at shape-type (offset 0).
+     * @param shapeType {@link #TYPE_POLYLINE} or {@link #TYPE_POLYGON}.
+     * @return Feature with one ring per part; coordinates are [x, y] in the file's CRS.
+     */
     private static Feature readPolyOrPolygon(ByteBuffer buf, int shapeType) {
         // Offset 4: bounding box (4 doubles = 32 bytes), skip
         int numParts  = buf.getInt(36);
@@ -131,6 +145,14 @@ class ShapefileReader {
         return new Feature(shapeType, rings);
     }
 
+    /**
+     * Reads exactly {@code buf.length} bytes from {@code in}, blocking until complete.
+     * Throws {@link java.io.IOException} on unexpected EOF.
+     *
+     * @param in  Input stream to read from.
+     * @param buf Buffer to fill completely.
+     * @throws IOException if fewer bytes are available than requested.
+     */
     private static void readFully(InputStream in, byte[] buf) throws IOException {
         int total = 0;
         while (total < buf.length) {

@@ -8,6 +8,10 @@ import java.util.ArrayList;
 import java.util.Collections;
 
 //final class cannot be extended by another class
+/**
+ * Stateless utility class. Non-instantiable (private constructor).
+ * Provides matrix arithmetic, polar coordinate helpers, heading math, and SharedPreferences array helpers.
+ */
 public final class ExtraFunctions {
 
     //private constructor stops class from
@@ -30,10 +34,22 @@ public final class ExtraFunctions {
         return (float)(radius * Math.sin(angle));
     }
 
+    /**
+     * Converts a nanosecond duration to seconds.
+     *
+     * @param time Duration (ns).
+     * @return Duration (s).
+     */
     public static float nsToSec(float time) {
         return time / 1000000000.0f;
     }
 
+    /**
+     * Computes {@code num!} (integer factorial). Used by Taylor-series scale factors.
+     *
+     * @param num Non-negative integer.
+     * @return {@code num!}
+     */
     public static int factorial(int num) {
         int factorial = 1;
         for (int i = 1; i <= num; i++) {
@@ -42,6 +58,13 @@ public final class ExtraFunctions {
         return factorial;
     }
 
+    /**
+     * Multiplies two matrices: C = A × B.
+     *
+     * @param a Left-hand matrix (M×K).
+     * @param b Right-hand matrix (K×N).
+     * @return Result matrix C (M×N).
+     */
     public static float[][] multiplyMatrices(float[][] a, float[][] b) {
 
         //numRows = aRows
@@ -91,6 +114,11 @@ public final class ExtraFunctions {
 //
 //    }
 
+    /**
+     * Adds two matrices element-wise: C = A + B. Dimensions must match.
+     *
+     * @return Result matrix C.
+     */
     public static float[][] addMatrices(float[][] a, float[][] b) {
 
         int numRows = a.length;
@@ -106,6 +134,11 @@ public final class ExtraFunctions {
         return c;
     }
 
+    /**
+     * Scales every element of {@code a} by {@code scalar}: B = a × scalar.
+     *
+     * @return Scaled copy of the matrix.
+     */
     public static float[][] scaleMatrix(float a[][], float scalar) {
 
         int numRows = a.length;
@@ -122,6 +155,13 @@ public final class ExtraFunctions {
 
     }
 
+    /**
+     * Serialises a String list to SharedPreferences by storing its size and each element individually.
+     *
+     * @param arrayName Key prefix used to store size and elements.
+     * @param array     List to persist.
+     * @param editor    Open SharedPreferences editor (caller must call {@code apply()}).
+     */
     public static void addArrayToSharedPreferences(String arrayName, ArrayList<String> array, SharedPreferences.Editor editor) {
         editor.putInt(arrayName + "_size", array.size());
         for (int i = 0; i < array.size(); i++) {
@@ -130,6 +170,12 @@ public final class ExtraFunctions {
         editor.apply();
     }
 
+    /**
+     * Deserialises a String list previously stored by {@link #addArrayToSharedPreferences}.
+     *
+     * @param arrayName Key prefix.
+     * @return Reconstructed list; elements may be null if the key was missing.
+     */
     public static ArrayList<String> getArrayFromSharedPreferences(String arrayName, SharedPreferences prefs) {
 
         int arraySize = prefs.getInt(arrayName + "_size", 0);
@@ -173,6 +219,7 @@ public final class ExtraFunctions {
 //        return floatArray;
 //    }
 
+    /** Converts an EJML {@link DMatrixRMaj} to a {@code float[][]} array. */
     public static float[][] denseMatrixToArray(DMatrixRMaj matrix) {
         float array[][] = new float[matrix.getNumRows()][matrix.getNumCols()];
         for (int row = 0; row < matrix.getNumRows(); row++)
@@ -181,10 +228,12 @@ public final class ExtraFunctions {
         return array;
     }
 
+    /** Converts a 3-element vector to a 3×1 column matrix {@code [[x],[y],[z]]}. */
     public static double[][] vectorToMatrix(double[] array) {
         return new double[][]{{array[0]},{array[1]},{array[2]}};
     }
 
+    /** Creates an ArrayList from varargs float values. */
     public static ArrayList<Float> createList(float... args) {
         ArrayList<Float> list = new ArrayList<>();
         for (float arg : args)
@@ -200,12 +249,25 @@ public final class ExtraFunctions {
 //        return (float)heading;
 //    }
 
+    /**
+     * Converts a heading in radians (signed, any range) to degrees in [0, 360).
+     *
+     * @param rads Heading (rad); negative values are shifted by 2π before converting.
+     * @return Heading (°) in [0, 360).
+     */
     public static float radsToDegrees(double rads) {
         double degrees = (rads < 0) ? (2.0 * Math.PI + rads) : rads;
         degrees *= (180.0 / Math.PI);
         return (float)degrees;
     }
 
+    /**
+     * Adds a heading delta and wraps the result to (−π, π].
+     *
+     * @param initHeading  Current heading (rad).
+     * @param deltaHeading Change in heading (rad).
+     * @return New heading (rad) in (−π, π].
+     */
     public static float polarAdd(double initHeading, double deltaHeading) {
 
         double currHeading = initHeading + deltaHeading;
@@ -220,6 +282,14 @@ public final class ExtraFunctions {
 
     }
 
+    /**
+     * Complementary filter: blends magnetometer and gyroscope headings (2% mag / 98% gyro).
+     * Both inputs are normalised to [0, 2π] before blending; result is wrapped to (−π, π].
+     *
+     * @param magHeading  Absolute heading from magnetometer (rad).
+     * @param gyroHeading Integrated heading from gyroscope (rad).
+     * @return Filtered heading (rad).
+     */
     public static float calcCompHeading(double magHeading, double gyroHeading) {
         //complimentary filter
 
@@ -239,6 +309,12 @@ public final class ExtraFunctions {
 
     }
 
+    /**
+     * Computes the Euclidean norm (L2 magnitude) of a variable-length vector.
+     *
+     * @param args Vector components (any units).
+     * @return {@code sqrt(Σ args[i]²)}
+     */
     public static float calcNorm(double... args) {
         double sumSq = 0;
         for (double arg : args)
@@ -246,6 +322,7 @@ public final class ExtraFunctions {
         return (float)Math.sqrt(sumSq);
     }
 
+    /** Widens a {@code float[]} to a {@code double[]} element-wise. */
     public static double[] floatVectorToDoubleVector(float[] floatValues) {
         double[] doubleValues = new double[floatValues.length];
         for (int i = 0; i < floatValues.length; i++)

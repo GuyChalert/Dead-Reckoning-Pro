@@ -20,6 +20,12 @@ import java.util.Arrays;
 import nisargpatel.deadreckoning.R;
 import nisargpatel.deadreckoning.activity.GraphActivity;
 
+/**
+ * Top-level calibration dialog that orchestrates the mag → gyro sequence.
+ * "Manual Calibrate" launches {@link MagCalibrationDialogFragment} then
+ * {@link GyroCalibrationDialogFragment} via {@link SensorCalibrationHandler};
+ * "Auto" skips calibration and proceeds directly to {@link GraphActivity} with zero bias.
+ */
 public class SensorCalibrationDialogFragment extends DialogFragment {
 
     private static float[] gyroBias;
@@ -98,6 +104,7 @@ public class SensorCalibrationDialogFragment extends DialogFragment {
 
     }
 
+    /** Launches mag calibration first; gyro follows after message 0 arrives in the handler. */
     private void startCalibrationDialogs() {
 
         GyroCalibrationDialogFragment gyroCalibrateDialog = new GyroCalibrationDialogFragment();
@@ -111,6 +118,10 @@ public class SensorCalibrationDialogFragment extends DialogFragment {
         }
     }
 
+    /**
+     * Copies user arguments and calibration state into a GraphActivity launch intent.
+     * Bias arrays are zero-filled when {@code isCalibrating == NOT_CALIBRATING}.
+     */
     private Intent addExtras(Intent myIntent) {
 
         if (getArguments() != null) {
@@ -134,20 +145,28 @@ public class SensorCalibrationDialogFragment extends DialogFragment {
 
     }
 
+    /** Starts {@link GraphActivity} with all calibration extras attached. */
     private void startGraphActivity() {
         Intent myIntent = new Intent(getActivity(), GraphActivity.class);
         myIntent = addExtras(myIntent);
         startActivity(myIntent);
     }
 
+    /** @param mBias Hard-iron bias [x, y, z] (μT) returned by {@link MagCalibrationDialogFragment}. */
     private static void setMagBias(float[] mBias) {
         magBias = mBias;
     }
 
+    /** @param mBias Static drift bias [x, y, z] (rad/s) from {@link GyroCalibrationDialogFragment}. */
     private static void setGyroBias(float[] mBias) {
         gyroBias = mBias;
     }
 
+    /**
+     * Two-step message handler linking the mag → gyro calibration sequence.
+     * Message 0: mag done → store bias, show gyro dialog.
+     * Message 1: gyro done → store bias, dismiss outer dialog (triggers {@link #onDismiss}).
+     */
     private static class SensorCalibrationHandler extends Handler {
 
         private Context context;

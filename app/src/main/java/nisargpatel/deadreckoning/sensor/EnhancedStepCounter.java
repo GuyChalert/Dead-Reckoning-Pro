@@ -261,8 +261,13 @@ public class EnhancedStepCounter {
     /** Called when Android's hardware TYPE_STEP_DETECTOR fires. Gates software detection. */
     public void notifyHardwareStep(long timestampNs) { lastHardwareStepNs = timestampNs; }
 
+    /** @return Current stride length in meters (m); adaptive if Weinberg is enabled. */
     public double getStrideLength()   { return currentStrideLength; }
+
+    /** @return Cumulative confirmed step count since last {@link #reset()}. */
     public int    getStepCount()      { return stepCount; }
+
+    /** @return {@code true} if ZUPT determined the device is currently stationary. */
     public boolean isStationary()     { return isStationary; }
 
     public void reset() {
@@ -280,10 +285,14 @@ public class EnhancedStepCounter {
         kalmanFilter.reset(0, 1);
     }
 
+    /**
+     * @return Estimated total distance traveled (stepCount × strideLength) in meters (m).
+     */
     public double getDistanceTraveled() {
         return stepCount * currentStrideLength;
     }
 
+    /** @return Current Kalman-filtered linear-acceleration magnitude in m/s². */
     public double getFilteredAcceleration() {
         return kalmanFilter.getEstimate();
     }

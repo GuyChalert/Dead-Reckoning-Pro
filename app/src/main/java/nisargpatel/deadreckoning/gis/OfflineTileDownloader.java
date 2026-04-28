@@ -25,8 +25,11 @@ public class OfflineTileDownloader {
     public static final int MAX_TILES = 5000;
 
     public interface Callback {
+        /** Called after each tile attempt; {@code done} ≤ {@code total}. */
         void onProgress(int done, int total);
+        /** Called when all tiles have been written; {@code out} is the MBTiles file. */
         void onDone(File out);
+        /** Called if the download is aborted (too many tiles, network error, DB failure). */
         void onError(Exception e);
     }
 
@@ -117,6 +120,7 @@ public class OfflineTileDownloader {
         }
     }
 
+    /** Inserts a key/value row into the MBTiles {@code metadata} table. */
     private static void insertMeta(SQLiteDatabase db, String key, String value) {
         db.execSQL("INSERT INTO metadata (name, value) VALUES (?, ?)",
             new Object[]{key, value});
@@ -137,16 +141,23 @@ public class OfflineTileDownloader {
         };
     }
 
+    /** Converts longitude (°) to XYZ tile column at zoom {@code z}. */
     private static int lonToTileX(double lon, int z) {
         return (int) Math.floor((lon + 180.0) / 360.0 * (1 << z));
     }
 
+    /** Converts latitude (°) to XYZ tile row at zoom {@code z} (Web-Mercator projection). */
     private static int latToTileY(double lat, int z) {
         double rad = Math.toRadians(lat);
         double y = (1.0 - Math.log(Math.tan(rad) + 1.0 / Math.cos(rad)) / Math.PI) / 2.0;
         return (int) Math.floor(y * (1 << z));
     }
 
+    /**
+     * Fetches raw bytes from an HTTP/HTTPS URL with a 10 s connect / 20 s read timeout.
+     *
+     * @return Response body bytes, or null on non-200 response or network error.
+     */
     private static byte[] fetchBytes(String urlStr) {
         HttpURLConnection conn = null;
         try {

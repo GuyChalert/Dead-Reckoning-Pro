@@ -72,14 +72,24 @@ public class KmlOverlay {
             this.depth = depth;
         }
 
+        /** @return {@code true} if this link specifies a geographic region bounding box. */
         public boolean hasRegion() { return !Double.isNaN(north); }
 
+        /**
+         * @param vp Current map viewport bounding box.
+         * @return {@code true} if this link's region overlaps {@code vp} (or if no region is set).
+         */
         public boolean intersects(BoundingBox vp) {
             if (!hasRegion()) return true;
             return south <= vp.getLatNorth() && north >= vp.getLatSouth()
                 && west  <= vp.getLonEast()  && east  >= vp.getLonWest();
         }
 
+        /**
+         * @param vp          Current map viewport bounding box.
+         * @param viewWidthPx MapView width in pixels (px).
+         * @return {@code true} if the region is large enough on screen to meet the min LOD threshold.
+         */
         public boolean meetsLod(BoundingBox vp, int viewWidthPx) {
             if (minLodPixels <= 0 || !hasRegion()) return true;
             double lonSpanPerPx = Math.abs(vp.getLonEast() - vp.getLonWest()) / viewWidthPx;
@@ -167,6 +177,14 @@ public class KmlOverlay {
         return loadImpl(context, uri, mapView, null);
     }
 
+    /**
+     * Internal implementation shared by {@link #load} and {@link #loadFull}.
+     * Detects KMZ vs plain KML (MIME type, extension, then ZIP magic-byte probe),
+     * reads and extracts the KML entry, and delegates to {@link #parseAndCollect}.
+     *
+     * @param pendingOut If non-null, dynamic NetworkLinks (onRegion/onStop) are appended here
+     *                   instead of being fetched immediately.
+     */
     private static List<Overlay> loadImpl(Context context, Uri uri, MapView mapView,
                                           List<NetworkLinkDesc> pendingOut) throws Exception {
         String mime = context.getContentResolver().getType(uri);
@@ -241,6 +259,18 @@ public class KmlOverlay {
         }
     }
 
+    /**
+     * Parses a KML input stream and builds osmdroid overlays for all placemarks and ground overlays.
+     * NetworkLinks are resolved recursively up to {@link #MAX_NETWORK_LINK_DEPTH}; dynamic ones
+     * (onRegion/onStop) are deferred to {@code pendingOut} when non-null.
+     *
+     * @param baseUri   SAF URI of the source file (used for sibling image resolution); may be null
+     *                  for HTTP-fetched sub-documents.
+     * @param httpBase  Base URL of the HTTP source for resolving relative hrefs; null for SAF files.
+     * @param depth     Current NetworkLink recursion depth (0 = top-level).
+     * @param zipData   KMZ ZIP contents keyed by entry name; null for plain KML.
+     * @param pendingOut Accumulator for deferred dynamic NetworkLinks; may be null.
+     */
     private static List<Overlay> parseAndCollect(Context context, Uri baseUri, String httpBase,
                                                   int depth, InputStream in, MapView mapView,
                                                   Map<String, byte[]> zipData,
@@ -380,6 +410,7 @@ public class KmlOverlay {
         return overlays;
     }
 
+    /** Appends a {@code BBOX=west,south,east,north} parameter to {@code href} for WMS NetworkLinks. */
     private static String appendBbox(String href, BoundingBox vp) {
         String bbox = String.format(java.util.Locale.US, "%f,%f,%f,%f",
                 vp.getLonWest(), vp.getLatSouth(), vp.getLonEast(), vp.getLatNorth());
@@ -387,6 +418,15 @@ public class KmlOverlay {
         return href + sep + "BBOX=" + bbox;
     }
 
+    /**
+     * Fetches and parses a KML/KMZ document from an HTTP/HTTPS URL, returning its overlays.
+     * Non-HTTP hrefs (local/SAF) are ignored and return an empty list.
+     *
+     * @param href       Fully qualified HTTP/HTTPS URL, potentially with appended BBOX.
+     * @param httpBase   Base URL for resolving relative image hrefs within the fetched document.
+     * @param depth      Current recursion depth (passed through to {@link #parseAndCollect}).
+     * @param pendingOut Accumulator for deferred dynamic NetworkLinks found in the fetched doc.
+     */
     private static List<Overlay> fetchNetworkLinkUrl(Context context, String href, String httpBase,
             int depth, MapView mapView, List<NetworkLinkDesc> pendingOut) throws Exception {
         if (href.startsWith("http://") || href.startsWith("https://")) {
@@ -466,6 +506,7 @@ public class KmlOverlay {
                 nlNorth, nlSouth, nlEast, nlWest, minLod, depth);
     }
 
+    /** Advances the parser past the current element, consuming all nested content. */
     private static void skipElement(XmlPullParser xpp, String endTag) throws Exception {
         int event = xpp.next();
         while (event != XmlPullParser.END_DOCUMENT) {
@@ -476,6 +517,16 @@ public class KmlOverlay {
 
     // ---------- GroundOverlay ----------
 
+    /**
+     * Parses a KML {@code <GroundOverlay>} element and returns an anonymous {@link Overlay}
+     * that draws the raster image stretched over the declared lat/lon bounding box.
+     * Returns null if the bounding box or image href is missing, or the image cannot be loaded.
+     *
+     * @param baseUri  SAF URI of the containing KML/KMZ file (for sibling image resolution).
+     * @param httpBase HTTP base URL for relative image hrefs from NetworkLink documents.
+     * @param zipData  KMZ ZIP contents; null for plain KML files.
+     * @return Overlay that renders the ground image, or null on failure.
+     */
     private static Overlay parseGroundOverlay(Context context, Uri baseUri, String httpBase,
                                               XmlPullParser xpp,
                                               Map<String, byte[]> zipData) throws Exception {
@@ -538,6 +589,17 @@ public class KmlOverlay {
         };
     }
 
+    /**
+     * Resolves a ground-overlay image reference to a decoded {@link Bitmap}.
+     * Resolution order:
+     * 1. KMZ ZIP entry (exact path, case-insensitive path, filename-only match).
+     * 2. HTTP/HTTPS absolute URL fetch.
+     * 3. Relative href resolved against {@code httpBase} (NetworkLink sub-documents).
+     * 4. SAF sibling URI via {@link #buildSiblingUri}.
+     * 5. External-storage file path decoded from the SAF document ID.
+     *
+     * @return Decoded bitmap, or null if all resolution strategies fail.
+     */
     private static Bitmap resolveImage(Context context, Uri baseUri, String httpBase,
                                        String href, Map<String, byte[]> zipData) {
         // 1. KMZ: exact path match
@@ -633,6 +695,14 @@ public class KmlOverlay {
         return null;
     }
 
+    /**
+     * Attempts to build a SAF content URI for an image file located next to {@code baseUri}.
+     * Tries DocumentsContract document URI construction first, then path-string manipulation.
+     *
+     * @param baseUri  URI of the parent KML file.
+     * @param relHref  Relative image path from the KML (e.g. {@code "images/map.png"}).
+     * @return Sibling content URI, or null if construction fails.
+     */
     private static Uri buildSiblingUri(Uri baseUri, String relHref) {
         // 1. SAF document URI (e.g. content://com.android.externalstorage.documents/...)
         try {
@@ -673,6 +743,7 @@ public class KmlOverlay {
         }
     }
 
+    /** Reads all bytes from {@code in} into a byte array. */
     private static byte[] readAllBytes(InputStream in) throws Exception {
         ByteArrayOutputStream buf = new ByteArrayOutputStream();
         byte[] tmp = new byte[8192];
@@ -681,15 +752,22 @@ public class KmlOverlay {
         return buf.toByteArray();
     }
 
+    /** @return Parsed double, or {@link Double#NaN} on format error. */
     private static double parseDouble(String s) {
         try { return Double.parseDouble(s.trim()); } catch (NumberFormatException e) { return Double.NaN; }
     }
 
+    /** Strips XML namespace prefix from a tag name (e.g. {@code "kml:Placemark"} → {@code "Placemark"}). */
     private static String localName(String name) {
         int colon = name.indexOf(':');
         return colon >= 0 ? name.substring(colon + 1) : name;
     }
 
+    /**
+     * Parses a KML {@code <Point>} element, reading its {@code <coordinates>} child.
+     *
+     * @return {@link GeoPoint} in WGS-84, or null if coordinates are missing or malformed.
+     */
     private static GeoPoint parsePoint(XmlPullParser xpp) throws Exception {
         int event = xpp.next();
         while (event != XmlPullParser.END_DOCUMENT) {
@@ -711,6 +789,13 @@ public class KmlOverlay {
         return null;
     }
 
+    /**
+     * Parses all {@code lon,lat[,alt]} tuples from a {@code <coordinates>} element inside
+     * a LineString or Polygon element.
+     *
+     * @param stopTag Closing tag name that terminates parsing (e.g. {@code "LineString"}).
+     * @return List of {@link GeoPoint} (WGS-84); empty if none found.
+     */
     private static List<GeoPoint> parseCoordinates(XmlPullParser xpp, String stopTag) throws Exception {
         List<GeoPoint> pts = new ArrayList<>();
         int event = xpp.next();

@@ -20,6 +20,14 @@ import nisargpatel.deadreckoning.R;
 import nisargpatel.deadreckoning.extra.ExtraFunctions;
 import nisargpatel.deadreckoning.filewriting.DataFileWriter;
 
+/**
+ * Raw-sensor data recorder that writes semicolon-delimited CSV files to
+ * {@code Dead_Reckoning/Data_Collect_Activity/} via {@link DataFileWriter}.
+ * Records: Accelerometer, Linear_Acceleration, Gyroscope_Calibrated, Gyroscope_Uncalibrated,
+ * Magnetic_Field, Magnetic_Field_Uncalibrated, Gravity, and the derived 3×3 Rotation_Matrix
+ * (computed from accelerometer + magnetic field via {@link SensorManager#getRotationMatrix}).
+ * Each row is prefixed with the elapsed time (ns) from the first event.
+ */
 public class DataCollectActivity extends AppCompatActivity implements SensorEventListener{
 
     private static final String FOLDER_NAME = "Dead_Reckoning/Data_Collect_Activity";
@@ -144,12 +152,14 @@ public class DataCollectActivity extends AppCompatActivity implements SensorEven
 
     }
 
+    /** Switches to recording state: disables Start, enables Pause and Stop. */
     private void enableStopButton() {
         buttonStart.setEnabled(false);
         buttonPause.setEnabled(true);
         buttonStop.setEnabled(true);
     }
 
+    /** Switches to idle state: enables Start, disables Pause and Stop. */
     private void enableStartButton() {
         buttonStart.setEnabled(true);
         buttonPause.setEnabled(false);

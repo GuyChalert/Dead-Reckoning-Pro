@@ -16,6 +16,11 @@ public class BarometerManager {
     private volatile boolean enabled = true;
     private volatile float manualElevationM = 0f;   // used when barometer is disabled
 
+    /**
+     * Updates the latest raw pressure reading.
+     *
+     * @param hPa Atmospheric pressure in hectopascals (hPa) from TYPE_PRESSURE.
+     */
     public void onPressureReading(float hPa) {
         lastPressureHpa = hPa;
     }
@@ -38,15 +43,41 @@ public class BarometerManager {
         calibrationOffsetM = knownAltitudeM - raw;
     }
 
+    /**
+     * Enables or disables barometer-derived altitude.
+     * When disabled, {@link #getAltitudeM()} returns the manual elevation.
+     *
+     * @param enabled {@code true} to use barometer; {@code false} to use manual value.
+     */
     public void setEnabled(boolean enabled) { this.enabled = enabled; }
+
+    /** @return {@code true} if barometer-derived altitude is active. */
     public boolean isEnabled() { return enabled; }
 
+    /**
+     * Sets the fallback manual elevation returned when the barometer is disabled
+     * or no pressure reading has been received yet.
+     *
+     * @param altM Manual elevation above sea level in meters (m).
+     */
     public void setManualElevation(float altM) { manualElevationM = altM; }
+
+    /** @return Manual elevation fallback in meters (m). */
     public float getManualElevation() { return manualElevationM; }
 
+    /** @return Current calibration offset added to raw ISA altitude, in meters (m). */
     public float getCalibrationOffsetM() { return calibrationOffsetM; }
+
+    /**
+     * Directly sets the altitude calibration offset.
+     *
+     * @param offsetM Offset in meters (m) to add to raw ISA altitude.
+     */
     public void setCalibrationOffset(float offsetM) { calibrationOffsetM = offsetM; }
 
+    /** @return {@code true} if at least one pressure reading has been received. */
     public boolean hasPressureReading() { return !Float.isNaN(lastPressureHpa); }
+
+    /** @return Most recent raw pressure reading in hectopascals (hPa). */
     public float getLastPressureHpa() { return lastPressureHpa; }
 }

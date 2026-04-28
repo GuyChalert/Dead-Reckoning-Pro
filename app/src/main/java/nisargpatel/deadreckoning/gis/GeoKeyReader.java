@@ -11,6 +11,13 @@ import mil.nga.tiff.FileDirectory;
  */
 class GeoKeyReader {
 
+    /**
+     * Reads the EPSG code from GeoKey directory tag 34735.
+     * Prefers GeoProjectedCSTypeGeoKey (3072) over GeographicTypeGeoKey (2048).
+     * Ignores user-defined values (32767).
+     *
+     * @return EPSG code, or 4326 (WGS-84) if not found.
+     */
     static int readEpsg(FileDirectory dir) {
         Number[] tag = getShortTag(dir, 34735);
         if (tag == null || tag.length < 4) return 4326;
@@ -35,6 +42,12 @@ class GeoKeyReader {
         return 4326;
     }
 
+    /**
+     * Reads a SHORT TIFF tag as a {@code Number[]} array, handling List, Number[], and short[] types.
+     *
+     * @param tagId TIFF tag identifier (e.g. 34735 for GeoKeyDirectoryTag).
+     * @return Array of unsigned short values, or null if the tag is absent or the type is unrecognised.
+     */
     private static Number[] getShortTag(FileDirectory dir, int tagId) {
         try {
             FieldTagType tag = FieldTagType.getById(tagId);

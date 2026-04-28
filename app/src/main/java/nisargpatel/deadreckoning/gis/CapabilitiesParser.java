@@ -17,8 +17,14 @@ import java.util.List;
  */
 public class CapabilitiesParser {
 
+    /** Result callback delivered on the calling thread (must be a background thread). */
     public interface ParseCallback {
+        /**
+         * @param serviceType Detected service type ({@link LayerType#WMS} or {@link LayerType#WMTS}).
+         * @param layers      Layers that support Web Mercator; may be empty but never null.
+         */
         void onSuccess(LayerType serviceType, List<LayerInfo> layers);
+        /** @param message Human-readable error description. */
         void onError(String message);
     }
 
@@ -48,6 +54,7 @@ public class CapabilitiesParser {
 
     // ------------------------------------------------------------------ WMTS
 
+    /** Iterates all {@code <Layer>} elements in a WMTS Capabilities document. */
     private static List<LayerInfo> parseWmts(XmlPullParser p)
             throws XmlPullParserException, IOException {
         List<LayerInfo> layers = new ArrayList<>();
@@ -61,6 +68,11 @@ public class CapabilitiesParser {
         return layers;
     }
 
+    /**
+     * Reads one WMTS {@code <Layer>} element.
+     * Returns null if the layer has no Identifier, no PM/GoogleMapsCompatible TileMatrixSet,
+     * or no supported image format.
+     */
     private static LayerInfo readWmtsLayer(XmlPullParser p)
             throws XmlPullParserException, IOException {
         String name = "", title = "", defaultStyle = "", matrixSet = "";
@@ -112,6 +124,7 @@ public class CapabilitiesParser {
                 formats, defaultStyle.isEmpty() ? "normal" : defaultStyle, matrixSet);
     }
 
+    /** Reads the {@code <Identifier>} text from within a {@code <Style>} element. */
     private static String parseStyleIdentifier(XmlPullParser p)
             throws XmlPullParserException, IOException {
         String id = "";
@@ -132,6 +145,7 @@ public class CapabilitiesParser {
 
     // ------------------------------------------------------------------ WMS
 
+    /** Iterates all {@code <Layer>} elements in a WMS Capabilities document. */
     private static List<LayerInfo> parseWms(XmlPullParser p)
             throws XmlPullParserException, IOException {
         List<LayerInfo> layers = new ArrayList<>();
@@ -146,6 +160,10 @@ public class CapabilitiesParser {
         return layers;
     }
 
+    /**
+     * Reads one WMS {@code <Layer>} element, skipping nested group layers.
+     * Returns null if the layer has no Name.
+     */
     private static LayerInfo readWmsLayer(XmlPullParser p)
             throws XmlPullParserException, IOException {
         String name = "", title = "";
@@ -188,6 +206,7 @@ public class CapabilitiesParser {
 
     // ------------------------------------------------------------------ util
 
+    /** Reads the text content of the current element and advances past the end tag. */
     private static String readText(XmlPullParser p)
             throws XmlPullParserException, IOException {
         String result = "";
@@ -198,6 +217,7 @@ public class CapabilitiesParser {
         return result;
     }
 
+    /** Skips the current open element and all its nested children. */
     private static void skipTag(XmlPullParser p)
             throws XmlPullParserException, IOException {
         int depth = 1;
@@ -208,11 +228,13 @@ public class CapabilitiesParser {
         }
     }
 
+    /** Removes XML namespace prefix from a tag name (e.g. {@code "ows:Identifier"} → {@code "Identifier"}). */
     private static String stripNs(String name) {
         int colon = name.lastIndexOf(':');
         return colon >= 0 ? name.substring(colon + 1) : name;
     }
 
+    /** Picks the best image format from a list: PNG preferred over JPEG, JPEG over other. */
     private static String pickFormat(List<String> formats) {
         for (String f : formats) if (f.contains("png"))  return f;
         for (String f : formats) if (f.contains("jpeg")) return f;

@@ -39,6 +39,11 @@ import nisargpatel.deadreckoning.model.Trip;
 import nisargpatel.deadreckoning.storage.TripStorage;
 import nisargpatel.deadreckoning.adapter.TripAdapter;
 
+/**
+ * Shows all saved trips sorted newest-first, with aggregate stats (total distance, trips, steps).
+ * Tap a trip to see its details; long-press or tap the export button to export (CSV/GPX) or delete.
+ * Export targets: folder picker via SAF (Android 10+) or direct Downloads directory (legacy).
+ */
 public class HistoryActivity extends AppCompatActivity implements TripAdapter.OnTripClickListener {
 
     private TripStorage tripStorage;
@@ -96,6 +101,7 @@ public class HistoryActivity extends AppCompatActivity implements TripAdapter.On
         toolbar.setNavigationOnClickListener(v -> finish());
     }
 
+    /** Loads all trips from storage, sorts by start time descending, and toggles the empty-state view. */
     private void loadTrips() {
         List<Trip> trips = tripStorage.getAllTrips();
         trips.sort((t1, t2) -> Long.compare(t2.getStartTime(), t1.getStartTime()));
@@ -110,6 +116,7 @@ public class HistoryActivity extends AppCompatActivity implements TripAdapter.On
         }
     }
 
+    /** Refreshes the summary header with total trip count, cumulative distance (km), and step count. */
     private void updateStats() {
         int totalTrips = tripStorage.getTotalTrips();
         double totalDistance = tripStorage.getTotalDistance();
@@ -130,6 +137,7 @@ public class HistoryActivity extends AppCompatActivity implements TripAdapter.On
         showTripOptions(trip);
     }
 
+    /** Shows a dialog with full trip stats (date, duration, distance, steps, turn count, start/end coords). */
     private void showTripDetails(Trip trip) {
         SimpleDateFormat sdf = new SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.getDefault());
         
@@ -153,6 +161,7 @@ public class HistoryActivity extends AppCompatActivity implements TripAdapter.On
             .show();
     }
 
+    /** Shows a picker with export (CSV/GPX × choose-folder or Downloads) and delete options. */
     private void showTripOptions(Trip trip) {
         String[] options = {
             getString(R.string.export_csv_choose_folder),
@@ -186,6 +195,13 @@ public class HistoryActivity extends AppCompatActivity implements TripAdapter.On
             .show();
     }
     
+    /**
+     * Writes a trip export directly to the public Downloads directory.
+     * Android 10+: uses MediaStore (IS_PENDING pattern); pre-10: writes to {@link Environment#DIRECTORY_DOWNLOADS}.
+     *
+     * @param trip   Trip to export.
+     * @param format {@code "csv"} or {@code "gpx"}.
+     */
     private void exportToDownloads(Trip trip, String format) {
         try {
             SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault());
@@ -233,6 +249,7 @@ public class HistoryActivity extends AppCompatActivity implements TripAdapter.On
         }
     }
 
+    /** Starts {@link MainNavigationActivity} in view-only mode for the selected trip. */
     private void viewTripOnMap(Trip trip) {
         Intent intent = new Intent(this, MainNavigationActivity.class);
         intent.putExtra("trip_id", trip.getId());
@@ -240,6 +257,12 @@ public class HistoryActivity extends AppCompatActivity implements TripAdapter.On
         startActivity(intent);
     }
 
+    /**
+     * Opens the SAF folder picker; stores the trip and format for {@link #performExportToFolder()}.
+     *
+     * @param trip   Trip to export.
+     * @param format {@code "csv"} or {@code "gpx"}.
+     */
     private void exportTrip(Trip trip, String format) {
         pendingExportTrip = trip;
         pendingExportFormat = format;
@@ -251,6 +274,10 @@ public class HistoryActivity extends AppCompatActivity implements TripAdapter.On
         folderPickerLauncher.launch(intent);
     }
     
+    /**
+     * Creates the export file inside the user-chosen SAF folder using {@link DocumentsContract#createDocument},
+     * writes UTF-8 content, then clears the pending state.
+     */
     private void performExportToFolder() {
         if (pendingExportTrip == null || pendingExportFolderUri == null) return;
         
@@ -301,6 +328,7 @@ public class HistoryActivity extends AppCompatActivity implements TripAdapter.On
         pendingExportFolderUri = null;
     }
 
+    /** Shows a confirmation dialog; on confirm, deletes the trip and refreshes the list and stats. */
     private void confirmDeleteTrip(Trip trip) {
         new AlertDialog.Builder(this)
             .setTitle(R.string.delete_trip)

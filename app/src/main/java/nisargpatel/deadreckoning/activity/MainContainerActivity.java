@@ -15,6 +15,11 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import nisargpatel.deadreckoning.R;
 
+/**
+ * Shell activity that hosts {@link MapFragment} and {@link StepsFragment} via a bottom navigation bar.
+ * A FAB toggles tracking start/stop, delegating to whichever fragment is currently visible.
+ * History, Calibration, and Guide items navigate to standalone activities.
+ */
 public class MainContainerActivity extends AppCompatActivity {
 
     private BottomNavigationView bottomNavigation;
@@ -36,6 +41,7 @@ public class MainContainerActivity extends AppCompatActivity {
         setupBottomNavigation();
     }
 
+    /** Binds the bottom navigation view and FAB; FAB is hidden initially (shown only on Steps tab). */
     private void initViews() {
         bottomNavigation = findViewById(R.id.bottomNavigation);
         fabStartStop = findViewById(R.id.fabStartStop);
@@ -45,6 +51,7 @@ public class MainContainerActivity extends AppCompatActivity {
         fabStartStop.hide();
     }
 
+    /** Adds MapFragment and StepsFragment to the container; map starts visible, steps hidden. */
     private void initFragments() {
         mapFragment = new MapFragment();
         stepsFragment = new StepsFragment();
@@ -83,6 +90,10 @@ public class MainContainerActivity extends AppCompatActivity {
         });
     }
 
+    /**
+     * Switches the visible fragment with a fade transition; no-op if already current.
+     * FAB is hidden on the Map tab and shown on all others.
+     */
     private void showFragment(Fragment fragment) {
         if (fragment == currentFragment) return;
 
@@ -101,6 +112,7 @@ public class MainContainerActivity extends AppCompatActivity {
         }
     }
 
+    /** Toggles the tracking state and updates the FAB icon/tint; delegates to the active fragment. */
     private void toggleTracking() {
         isTracking = !isTracking;
 
@@ -119,6 +131,7 @@ public class MainContainerActivity extends AppCompatActivity {
         }
     }
 
+    /** @return {@code true} while a tracking session is active. */
     public boolean isTracking() {
         return isTracking;
     }

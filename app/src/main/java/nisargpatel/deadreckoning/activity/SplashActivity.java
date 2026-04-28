@@ -24,6 +24,12 @@ import nisargpatel.deadreckoning.R;
 import nisargpatel.deadreckoning.permission.PermissionHelper;
 
 @SuppressLint("CustomSplashScreen")
+/**
+ * Full-screen splash activity shown at launch.
+ * Fades in the app icon, title, and developer credit over 2.5 s, then checks runtime
+ * permissions via {@link PermissionHelper}. Navigates to {@link MainContainerActivity}
+ * regardless of outcome (missing permissions reduce functionality but don't block launch).
+ */
 public class SplashActivity extends AppCompatActivity {
 
     private static final int PERMISSION_REQUEST_CODE = 100;
@@ -43,6 +49,7 @@ public class SplashActivity extends AppCompatActivity {
         new Handler(Looper.getMainLooper()).postDelayed(this::checkPermissions, 2500);
     }
 
+    /** Fades in icon (200 ms delay), title with upward slide (500 ms), and developer text (1000 ms). */
     private void startAnimations() {
         ImageView icon = findViewById(R.id.icon);
         TextView title = findViewById(R.id.title);
@@ -73,6 +80,7 @@ public class SplashActivity extends AppCompatActivity {
             .start();
     }
 
+    /** Checks permissions and navigates: granted → main, rationale available → show dialog, else request. */
     private void checkPermissions() {
         if (PermissionHelper.hasAllPermissions(this)) {
             startMainActivity();
@@ -83,6 +91,7 @@ public class SplashActivity extends AppCompatActivity {
         }
     }
 
+    /** Shows an explanation dialog before re-requesting denied permissions. "Later" proceeds with partial functionality. */
     private void showPermissionRationale() {
         new AlertDialog.Builder(this)
                 .setTitle(R.string.permissions_required)
@@ -135,6 +144,7 @@ public class SplashActivity extends AppCompatActivity {
         }
     }
 
+    /** Offers to open app settings when permissions are permanently denied; "Continue anyway" proceeds. */
     private void showPermissionDeniedDialog() {
         new AlertDialog.Builder(this)
                 .setTitle(R.string.permissions_denied)
@@ -145,6 +155,7 @@ public class SplashActivity extends AppCompatActivity {
                 .show();
     }
 
+    /** Launches {@link MainContainerActivity} and finishes this activity. */
     private void startMainActivity() {
         Intent intent = new Intent(this, MainContainerActivity.class);
         startActivity(intent);

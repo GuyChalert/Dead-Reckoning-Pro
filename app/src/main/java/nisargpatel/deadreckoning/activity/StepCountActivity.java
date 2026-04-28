@@ -22,6 +22,12 @@ import nisargpatel.deadreckoning.sensor.EnhancedStepCounter;
 import nisargpatel.deadreckoning.stepcounting.DynamicStepCounter;
 import nisargpatel.deadreckoning.stepcounting.StaticStepCounter;
 
+/**
+ * Diagnostic activity that runs all step-counter algorithms in parallel so their counts can
+ * be compared side-by-side: 5 {@link StaticStepCounter} instances, 5 {@link DynamicStepCounter}
+ * instances, the Android TYPE_STEP_DETECTOR, and {@link EnhancedStepCounter}.
+ * A progress bar and instant-acceleration readout give real-time sensor feedback.
+ */
 public class StepCountActivity extends AppCompatActivity implements SensorEventListener {
 
     private static final double DEFAULT_STRIDE_LENGTH = 0.75;
@@ -93,6 +99,7 @@ public class StepCountActivity extends AppCompatActivity implements SensorEventL
         sensorStepDetector = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_DETECTOR);
     }
 
+    /** Creates 5 static counters (thresholds 2–6) and 5 dynamic counters (sensitivity 0.875–0.95), then clears all. */
     private void initStepcounters() {
         staticStepCounters = new StaticStepCounter[5];
         staticStepCounters[0] = new StaticStepCounter(2, 1.9);
@@ -111,6 +118,7 @@ public class StepCountActivity extends AppCompatActivity implements SensorEventL
         clearCounters();
     }
 
+    /** Registers accelerometer, linear acceleration, and step detector at FASTEST rate. */
     private void startTracking() {
         sensorManager.registerListener(this, sensorAccelerometer, SensorManager.SENSOR_DELAY_FASTEST);
         sensorManager.registerListener(this, sensorLinearAcceleration, SensorManager.SENSOR_DELAY_FASTEST);
@@ -135,6 +143,7 @@ public class StepCountActivity extends AppCompatActivity implements SensorEventL
         wasRunning = false;
     }
 
+    /** Resets all counters, UI labels, and the EnhancedStepCounter internal state. */
     private void clearCounters() {
         textStaticCounter.setText("0");
         textDynamicCounter.setText("0");
@@ -162,6 +171,7 @@ public class StepCountActivity extends AppCompatActivity implements SensorEventL
         myDialog.show(getSupportFragmentManager(), "Step Info");
     }
 
+    /** Builds a multi-line summary of all counter results (thresholds, sensitivities, counts, stride, distance). */
     private String getStepInfo() {
         StringBuilder message = new StringBuilder();
 
@@ -198,6 +208,13 @@ public class StepCountActivity extends AppCompatActivity implements SensorEventL
         }
     }
 
+    /**
+     * Routes a TYPE_LINEAR_ACCELERATION event through all step counters and updates the UI.
+     * Feeds the L2-norm to static/dynamic counters; passes raw values + timestamp to EnhancedStepCounter.
+     *
+     * @param values    Linear acceleration [x, y, z] (m/s²).
+     * @param timestamp Event timestamp (ns).
+     */
     private void processLinearAcceleration(float[] values, long timestamp) {
         double norm = ExtraFunctions.calcNorm(values[0], values[1], values[2]);
 

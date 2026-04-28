@@ -68,6 +68,11 @@ public class LayerControlSheet extends BottomSheetDialogFragment {
             registerForActivityResult(new ActivityResultContracts.OpenDocument(),
                     uri -> { if (uri != null) importKml(uri); });
 
+    /**
+     * @param manager    Layer manager to read and mutate.
+     * @param mapView    The active MapView (used by import operations).
+     * @param downloadCb Called when the user taps "Download region"; may be null.
+     */
     public static LayerControlSheet newInstance(LayerManager manager, MapView mapView,
                                                 DownloadCallback downloadCb) {
         LayerControlSheet sheet = new LayerControlSheet();
@@ -155,6 +160,7 @@ public class LayerControlSheet extends BottomSheetDialogFragment {
 
     // ------------------------------------------------------------------ shapefile import
 
+    /** Parses a Shapefile from {@code uri} on a background thread and refreshes the adapter. */
     private void importShapefile(Uri uri) {
         if (mapView == null) return;
         String name = resolveDisplayName(uri, "shapefile");
@@ -176,6 +182,7 @@ public class LayerControlSheet extends BottomSheetDialogFragment {
 
     // ------------------------------------------------------------------ MBTiles import
 
+    /** Copies and opens an MBTiles database from {@code uri} on a background thread. */
     private void importMBTiles(Uri uri) {
         String name = resolveDisplayName(uri, "mbtiles");
         runInBackground(() -> {
@@ -197,6 +204,7 @@ public class LayerControlSheet extends BottomSheetDialogFragment {
 
     // ------------------------------------------------------------------ GeoTIFF import
 
+    /** Decodes a GeoTIFF from {@code uri} as a RasterOverlay on a background thread. */
     private void importGeoTiff(Uri uri) {
         runInBackground(() -> {
             try {
@@ -215,6 +223,7 @@ public class LayerControlSheet extends BottomSheetDialogFragment {
 
     // ------------------------------------------------------------------ KML/KMZ import
 
+    /** Parses a KML/KMZ file from {@code uri} on a background thread; toasts a warning if 0 overlays. */
     private void importKml(android.net.Uri uri) {
         String name = resolveDisplayName(uri, "kml");
         runInBackground(() -> {
@@ -242,12 +251,18 @@ public class LayerControlSheet extends BottomSheetDialogFragment {
 
     // ------------------------------------------------------------------ utilities
 
+    /** Submits {@code r} to a fresh single-thread executor and shuts it down afterwards. */
     private void runInBackground(Runnable r) {
         ExecutorService exec = Executors.newSingleThreadExecutor();
         exec.execute(r);
         exec.shutdown();
     }
 
+    /**
+     * Queries the SAF provider for the display name of {@code uri}.
+     *
+     * @param fallback Returned if the query fails or returns no name.
+     */
     private String resolveDisplayName(Uri uri, String fallback) {
         try (android.database.Cursor c = requireContext().getContentResolver().query(
                 uri, new String[]{android.provider.OpenableColumns.DISPLAY_NAME},
@@ -259,6 +274,7 @@ public class LayerControlSheet extends BottomSheetDialogFragment {
 
     // ------------------------------------------------------------------ presets
 
+    /** Finds the preset with the given {@code id} in {@link LayerManager#getPresets()} and adds it. */
     private void addPreset(String id) {
         List<MapLayer> presets = LayerManager.getPresets();
         for (MapLayer p : presets) {
@@ -271,6 +287,7 @@ public class LayerControlSheet extends BottomSheetDialogFragment {
         }
     }
 
+    /** Re-fetches the layer list from the manager and notifies the adapter of a full data change. */
     private void refreshAdapter() {
         adapterLayers.clear();
         adapterLayers.addAll(layerManager.getLayers());
@@ -279,6 +296,7 @@ public class LayerControlSheet extends BottomSheetDialogFragment {
 
     // ------------------------------------------------------------------ add custom
 
+    /** Shows an AlertDialog for entering a WMS/WMTS service URL and choosing the service type. */
     private void showAddLayerDialog() {
         View dlgView = LayoutInflater.from(requireContext())
                 .inflate(R.layout.dialog_add_layer, null);
@@ -305,6 +323,10 @@ public class LayerControlSheet extends BottomSheetDialogFragment {
             .show();
     }
 
+    /**
+     * Fetches GetCapabilities from {@code url}, showing a progress dialog while waiting,
+     * then opens {@link #showLayerPickerDialog} on success.
+     */
     @SuppressWarnings("deprecation")
     private void fetchAndPick(String url, LayerType hint) {
         ProgressDialog prog = new ProgressDialog(requireContext());
@@ -334,6 +356,10 @@ public class LayerControlSheet extends BottomSheetDialogFragment {
             });
     }
 
+    /**
+     * Shows an item-list dialog of available layers from the capabilities response.
+     * Tapping an item builds a {@link MapLayer} and adds it via {@link LayerManager#addLayer}.
+     */
     private void showLayerPickerDialog(String endpointUrl, LayerType serviceType,
                                        List<LayerInfo> infos) {
         String[] titles = new String[infos.size()];

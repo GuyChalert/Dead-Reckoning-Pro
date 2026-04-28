@@ -26,6 +26,18 @@ public class ConstraintEdge {
     public final double wTheta;
     public final Type   type;
 
+    /**
+     * @param fromId  Source node ID (always valid).
+     * @param toId    Target node ID; -1 for unary (GPS/landmark) constraints.
+     * @param dx      Measurement x-component: body-frame Δx (m) for odometry/loop,
+     *                absolute ENZ-x (m) for GPS anchors,
+     *                cumulative path distance (m) for landmark constraints.
+     * @param dy      Measurement y-component (m); 0 for unary constraints.
+     * @param dTheta  Heading change (rad); 0 for unary constraints.
+     * @param wPos    Position information weight (1/σ², m⁻²).
+     * @param wTheta  Heading information weight (1/σ², rad⁻²); 0 for unary constraints.
+     * @param type    Edge type.
+     */
     private ConstraintEdge(int fromId, int toId,
                            double dx, double dy, double dTheta,
                            double wPos, double wTheta, Type type) {
@@ -39,12 +51,34 @@ public class ConstraintEdge {
     // Factory helpers — use these instead of the raw constructor.
     // ---------------------------------------------------------------
 
+    /**
+     * Creates a binary odometry (PDR step) edge.
+     *
+     * @param fromId  Source pose-node ID.
+     * @param toId    Target pose-node ID.
+     * @param dx      Body-frame East displacement in meters (m).
+     * @param dy      Body-frame North displacement in meters (m).
+     * @param dTheta  Heading change in radians (rad).
+     * @param wPos    Position information weight (1/σ², m⁻²).
+     * @param wTheta  Heading information weight (1/σ², rad⁻²).
+     */
     public static ConstraintEdge odometry(int fromId, int toId,
                                           double dx, double dy, double dTheta,
                                           double wPos, double wTheta) {
         return new ConstraintEdge(fromId, toId, dx, dy, dTheta, wPos, wTheta, Type.ODOMETRY);
     }
 
+    /**
+     * Creates a loop-closure edge between two previously visited nodes.
+     *
+     * @param fromId  Earlier pose-node ID.
+     * @param toId    Later pose-node ID.
+     * @param dx      Body-frame East displacement from fromId to toId (m).
+     * @param dy      Body-frame North displacement from fromId to toId (m).
+     * @param dTheta  Heading change from fromId to toId (rad).
+     * @param wPos    Position information weight (1/σ², m⁻²).
+     * @param wTheta  Heading information weight (1/σ², rad⁻²).
+     */
     public static ConstraintEdge loopClosure(int fromId, int toId,
                                              double dx, double dy, double dTheta,
                                              double wPos, double wTheta) {

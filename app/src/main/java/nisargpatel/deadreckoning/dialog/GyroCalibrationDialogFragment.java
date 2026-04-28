@@ -24,8 +24,15 @@ import nisargpatel.deadreckoning.extra.ExtraFunctions;
 import nisargpatel.deadreckoning.filewriting.DataFileWriter;
 import nisargpatel.deadreckoning.bias.GyroscopeBias;
 
+/**
+ * DialogFragment that collects uncalibrated gyroscope samples for static bias calibration.
+ * Skips the first {@link #WAIT_COUNTER} events so button-press vibration doesn't contaminate
+ * the data, then accumulates 600 samples and calls {@link GyroscopeBias#calcBias}.
+ * Sends message 1 to the parent handler when calibration completes.
+ */
 public class GyroCalibrationDialogFragment extends DialogFragment implements SensorEventListener{
 
+    /** Number of initial sensor events to discard (vibration / button-press settling). */
     public static final int WAIT_COUNTER = 100;
 
     private DataFileWriter dataFileWriter;
@@ -49,6 +56,7 @@ public class GyroCalibrationDialogFragment extends DialogFragment implements Sen
     private long startTime;
     private boolean firstRun;
 
+    /** @param handler Receives message 1 when gyro bias collection finishes. */
     public void setHandler(Handler handler) {
         this.handler = handler;
     }
@@ -110,6 +118,12 @@ public class GyroCalibrationDialogFragment extends DialogFragment implements Sen
     @Override
     public void onAccuracyChanged(Sensor sensor, int accuracy) {}
 
+    /**
+     * Accumulates TYPE_GYROSCOPE_UNCALIBRATED samples after the {@link #WAIT_COUNTER} warmup.
+     * Applies a quick low-pass gate (each axis magnitude < L2-norm of the sum) before feeding
+     * samples to {@link GyroscopeBias#calcBias}; calls {@link #dismissDialog()} when 600
+     * accepted samples have been collected.
+     */
     @Override
     public void onSensorChanged(SensorEvent event) {
 
@@ -148,6 +162,7 @@ public class GyroCalibrationDialogFragment extends DialogFragment implements Sen
 
     }
 
+    /** Unregisters the sensor, dismisses the progress dialog, and notifies the parent handler. */
     private void dismissDialog() {
 
         sensorManager.unregisterListener(this);
@@ -160,6 +175,7 @@ public class GyroCalibrationDialogFragment extends DialogFragment implements Sen
 
     }
 
+    /** @return Calibrated gyroscope bias vector [x, y, z] (rad/s). */
     public float[] getGyroBias() {
         return gyroscopeBias.getBias();
     }

@@ -14,6 +14,17 @@ import nisargpatel.deadreckoning.preferences.StepCounterPreferences;
 import nisargpatel.deadreckoning.slam.GraphSlamEngine;
 import nisargpatel.deadreckoning.stepcounting.StaticStepCounter;
 
+/**
+ * Central dead-reckoning engine that fuses step detection, heading estimation,
+ * GPS calibration, and Graph-SLAM into a continuously updated position estimate.
+ *
+ * <p>Coordinate system: local Cartesian ENU (East-North-Up) origin at the first
+ * GPS fix. X = East (m), Y = North (m). A GeoPoint is derived from X/Y for map
+ * display. Barometric altitude is tracked separately relative to session start.
+ *
+ * <p>Lifecycle: call {@link #start()} before feeding sensor data; call {@link #stop()}
+ * when the session ends to finalise the trip record.
+ */
 public class DeadReckoningEngine {
 
     private final EnhancedStepCounter stepCounter;
@@ -62,10 +73,20 @@ public class DeadReckoningEngine {
         staticStepCounter = new StaticStepCounter(2, 1.9);
     }
     
+    /**
+     * Selects which step-detection source drives position updates.
+     *
+     * @param mode {@link StepCounterPreferences.StepMode#DYNAMIC} (Weinberg+hardware gate),
+     *             {@code STATIC} (fixed thresholds), or {@code ANDROID} (hardware pedometer).
+     */
     public void setStepMode(StepCounterPreferences.StepMode mode) {
         this.stepMode = mode;
     }
-    
+
+    /**
+     * Starts a new tracking session. Resets all state and creates a new
+     * {@link Trip} record. Must be called before any {@link #updateSensors} calls.
+     */
     public void start() {
         isRunning = true;
         stepCounter.reset();
@@ -85,6 +106,10 @@ public class DeadReckoningEngine {
         currentElevation = 0;
     }
     
+    /**
+     * Stops the session, finalises the trip (sets end time, start/end coordinates,
+     * totals), and marks the engine as not running.
+     */
     public void stop() {
         isRunning = false;
         
@@ -96,10 +121,15 @@ public class DeadReckoningEngine {
         }
     }
 
+    /** Clears GPS calibration data (scale factor and heading bias). */
     public void resetCalibration() {
         gpsCalibrator.resetCalibration();
     }
-    
+
+    /**
+     * Fully resets the engine without starting a new session.
+     * Clears position, heading, step counts, SLAM state, and GPS calibration.
+     */
     public void reset() {
         currentX = 0;
         currentY = 0;
@@ -121,6 +151,16 @@ public class DeadReckoningEngine {
         lastGPSLocation = null;
     }
     
+    /**
+     * Processes one set of sensor readings. Call from the sensor-event thread.
+     * Any parameter may be {@code null} if the sensor did not fire this cycle.
+     *
+     * @param gravity      TYPE_ACCELEROMETER (gravity + linear accel) [x, y, z] in m/s².
+     * @param magnetic     TYPE_MAGNETIC_FIELD (uncalibrated) [x, y, z] in μT.
+     * @param gyro         TYPE_GYROSCOPE (bias-corrected by engine) [x, y, z] in rad/s.
+     * @param linearAccel  TYPE_LINEAR_ACCELERATION (gravity removed) [x, y, z] in m/s².
+     * @param timestamp    Sensor event timestamp in nanoseconds (ns).
+     */
     public void updateSensors(float[] gravity, float[] magnetic, float[] gyro, float[] linearAccel, long timestamp) {
         if (!isRunning) return;
 
@@ -190,6 +230,10 @@ public class DeadReckoningEngine {
         }
     }
     
+    /**
+     * Registers one hardware step event from Android's TYPE_STEP_DETECTOR.
+     * Advances position only when {@link StepCounterPreferences.StepMode#ANDROID} is active.
+     */
     public void addAndroidStep() {
         if (!isRunning) return;
         
@@ -201,6 +245,12 @@ public class DeadReckoningEngine {
         }
     }
     
+    /**
+     * Detects a turn by accumulating heading delta since the last step.
+     * A turn event is emitted when the accumulated change exceeds
+     * {@link #TURN_THRESHOLD} (°) and at least {@link #MIN_STEPS_BETWEEN_TURNS}
+     * steps have elapsed since the previous turn.
+     */
     private void detectTurn() {
         double headingDelta = currentHeading - previousHeading;
         
@@ -237,6 +287,12 @@ public class DeadReckoningEngine {
         }
     }
     
+    /**
+     * Creates and records an auto-detected turn event at the current path position.
+     *
+     * @param type          Classified turn type.
+     * @param headingChange Accumulated signed heading change that triggered the turn (°).
+     */
     private void addTurnEvent(TurnEvent.TurnType type, double headingChange) {
         double lat = 0, lon = 0;
         
@@ -254,6 +310,12 @@ public class DeadReckoningEngine {
         }
     }
     
+    /**
+     * Advances the ENU position by one stride along the current heading.
+     * Uses GPS-corrected heading and the Weinberg/fixed stride length.
+     * Also feeds the incremental odometry into the Graph-SLAM engine and
+     * appends the new GeoPoint to the current trip.
+     */
     private void updatePosition() {
         double strideLength = stepCounter.getStrideLength();
         double correctedHeading = gpsCalibrator.correctHeading(currentHeading);
@@ -278,6 +340,14 @@ public class DeadReckoningEngine {
         }
     }
     
+    /**
+     * Converts a local ENU displacement to a WGS-84 GeoPoint using a flat-Earth
+     * approximation (valid for distances up to ~10 km from the origin).
+     *
+     * @param x East displacement from session origin in meters (m).
+     * @param y North displacement from session origin in meters (m).
+     * @return Corresponding WGS-84 GeoPoint, or {@code null} if no start location set.
+     */
     private GeoPoint calculateGeoPoint(double x, double y) {
         if (startLocation == null) return null;
         
@@ -315,6 +385,14 @@ public class DeadReckoningEngine {
         slamEngine.addLandmarkDistance(measuredMetres);
     }
 
+    /**
+     * Incorporates a GPS fix into calibration.
+     * The first fix (accuracy ≤ 20 m) sets the ENU origin and SLAM anchor.
+     * Subsequent fixes refine the scale factor and heading bias via
+     * {@link GPSCalibrator} and add SLAM anchor constraints.
+     *
+     * @param location GPS fix; ignored if {@code null}, missing accuracy, or accuracy > 20 m.
+     */
     public void calibrateWithGPS(Location location) {
         if (location == null || !location.hasAccuracy() || location.getAccuracy() > 20) {
             return;
@@ -345,18 +423,29 @@ public class DeadReckoningEngine {
         slamEngine.addGpsAnchor(location);
     }
     
+    /** @return East displacement from session origin in meters (m). */
     public double getX() {
         return currentX;
     }
-    
+
+    /** @return North displacement from session origin in meters (m). */
     public double getY() {
         return currentY;
     }
-    
+
+    /**
+     * @return GPS-corrected heading in degrees (°), range [−180, 180].
+     *         0° = North, 90° = East.
+     */
     public double getHeading() {
         return gpsCalibrator.correctHeading(currentHeading);
     }
     
+    /**
+     * Returns the step count for the currently active step mode.
+     *
+     * @return Step count from the selected source (DYNAMIC, STATIC, or ANDROID).
+     */
     public int getStepCount() {
         switch (stepMode) {
             case DYNAMIC:
@@ -370,22 +459,32 @@ public class DeadReckoningEngine {
         }
     }
     
+    /** @return Step count from the dynamic (Weinberg+hardware-gate) counter. */
     public int getDynamicStepCount() {
         return stepCounter.getStepCount();
     }
-    
+
+    /** @return Step count from the static (fixed-threshold) counter. */
     public int getStaticStepCount() {
         return staticStepCounter.getStepCount();
     }
-    
+
+    /** @return Step count from Android's hardware pedometer (TYPE_STEP_DETECTOR). */
     public int getAndroidStepCount() {
         return androidStepCount;
     }
-    
+
+    /** @return Cumulative path length in meters (m) since {@link #start()}. */
     public double getDistance() {
         return totalDistance;
     }
-    
+
+    /**
+     * Calculates straight-line GPS distance from the session start to a given fix.
+     *
+     * @param gpsLocation Target GPS location.
+     * @return Distance in meters (m), or -1 if no start location is available.
+     */
     public double getDistanceFromGPS(Location gpsLocation) {
         if (startLocation == null || gpsLocation == null) {
             return -1;
@@ -393,58 +492,91 @@ public class DeadReckoningEngine {
         return startLocation.distanceTo(gpsLocation);
     }
     
+    /** @return {@code true} once enough GPS fixes have been accumulated for calibration. */
     public boolean isCalibrated() {
         return gpsCalibrator.isCalibrated();
     }
-    
+
+    /** @return Number of GPS calibration fixes collected so far. */
     public int getCalibrationPoints() {
         return gpsCalibrator.getCalibrationPointCount();
     }
-    
+
+    /**
+     * Forwards a hardware TYPE_STEP_DETECTOR event to the enhanced step counter.
+     * Required for the hardware gate to function in DYNAMIC mode.
+     *
+     * @param timestampNs Hardware step event timestamp in nanoseconds (ns).
+     */
     public void notifyHardwareStep(long timestampNs) {
         stepCounter.notifyHardwareStep(timestampNs);
     }
 
+    /**
+     * Signals whether the device has a hardware TYPE_STEP_DETECTOR sensor.
+     * If {@code false}, the hardware gate in DYNAMIC mode is disabled.
+     *
+     * @param available {@code true} if hardware step detector is present and registered.
+     */
     public void setHardwareStepDetectorAvailable(boolean available) {
         stepCounter.setHardwareStepDetectorAvailable(available);
     }
 
+    /**
+     * Sets a fixed stride length and disables Weinberg adaptive estimation.
+     *
+     * @param meters Fixed stride length in meters (m).
+     */
     public void setStrideLength(double meters) {
         stepCounter.setStrideLength(meters);
     }
-    
+
+    /** @return Current stride length in meters (m). */
     public double getStrideLength() {
         return stepCounter.getStrideLength();
     }
     
+    /** @return {@code true} if a session is active (between {@link #start()} and {@link #stop()}). */
     public boolean isRunning() {
         return isRunning;
     }
-    
+
+    /** @return First GPS fix used as the ENU origin, or {@code null} if not yet received. */
     public Location getStartLocation() {
         return startLocation;
     }
-    
+
+    /** @return Most recent GPS fix used for calibration, or {@code null} if none received. */
     public Location getLastGPSLocation() {
         return lastGPSLocation;
     }
-    
+
+    /**
+     * @return GPS-derived scale factor (GPS distance / dead-reckoning distance).
+     *         Returns 1.0 if not yet calibrated.
+     */
     public double getScaleFactor() {
         return gpsCalibrator.getScaleFactor();
     }
-    
+
+    /** @return Current trip record (non-null after {@link #start()}). */
     public Trip getCurrentTrip() {
         return currentTrip;
     }
-    
+
+    /** @return Snapshot of all turn events recorded so far this session. */
     public List<TurnEvent> getTurnEvents() {
         return new ArrayList<>(turnEvents);
     }
-    
+
+    /** @return {@code true} if a turn is currently being accumulated. */
     public boolean isTurning() {
         return isTurning;
     }
-    
+
+    /**
+     * @return Heading change accumulated so far during an in-progress turn, in degrees (°).
+     */
     public double getAccumulatedHeadingChange() {
         return accumulatedHeadingChange;
     }
@@ -453,6 +585,10 @@ public class DeadReckoningEngine {
     private boolean useManualHeading = false;
     private double manualHeadingOffset = 0;
 
+    /**
+     * Manually rotates heading 90° counter-clockwise and records a LEFT turn event.
+     * Switches the engine to manual heading mode, bypassing compass/gyro.
+     */
     public void turnLeft() {
         if (!isRunning) return;
         
@@ -466,6 +602,10 @@ public class DeadReckoningEngine {
         addManualTurnEvent(TurnEvent.TurnType.LEFT, -MANUAL_TURN_ANGLE);
     }
 
+    /**
+     * Manually rotates heading 90° clockwise and records a RIGHT turn event.
+     * Switches the engine to manual heading mode, bypassing compass/gyro.
+     */
     public void turnRight() {
         if (!isRunning) return;
         
@@ -479,6 +619,10 @@ public class DeadReckoningEngine {
         addManualTurnEvent(TurnEvent.TurnType.RIGHT, MANUAL_TURN_ANGLE);
     }
 
+    /**
+     * Manually rotates heading 180° and records a U-TURN event.
+     * Switches the engine to manual heading mode, bypassing compass/gyro.
+     */
     public void turnAround() {
         if (!isRunning) return;
         
@@ -492,6 +636,12 @@ public class DeadReckoningEngine {
         addManualTurnEvent(TurnEvent.TurnType.UTURN, 180);
     }
 
+    /**
+     * Creates and records a manually-triggered turn event at the current path position.
+     *
+     * @param type  Turn type.
+     * @param angle Signed heading change applied, in degrees (°).
+     */
     private void addManualTurnEvent(TurnEvent.TurnType type, double angle) {
         double lat = 0, lon = 0;
         
@@ -509,11 +659,17 @@ public class DeadReckoningEngine {
         }
     }
     
+    /**
+     * Locks the heading to a fixed value, bypassing all sensor estimates.
+     *
+     * @param heading Fixed heading in degrees (°); 0 = North, 90 = East.
+     */
     public void setFixedHeading(double heading) {
         currentHeading = heading;
         useManualHeading = true;
     }
 
+    /** Switches back from manual heading mode to sensor-derived heading (compass/gyro). */
     public void resetToCompassHeading() {
         useManualHeading = false;
     }

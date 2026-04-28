@@ -41,6 +41,17 @@ import nisargpatel.deadreckoning.preferences.StepCounterPreferences;
 import nisargpatel.deadreckoning.sensor.BarometerManager;
 import nisargpatel.deadreckoning.sensor.EnhancedStepCounter;
 
+/**
+ * Calibration screen with three sections:
+ * <ol>
+ *   <li><b>Stride calibration</b>: walks a GPS-measured distance to derive stride length (m),
+ *       or enters known distance + steps manually. Saves to {@code CalibrationPrefs}.</li>
+ *   <li><b>Step-mode picker</b>: selects DYNAMIC, ANDROID, or STATIC algorithm via radio buttons,
+ *       persisted in {@link StepCounterPreferences}.</li>
+ *   <li><b>Barometer</b>: toggles {@link BarometerManager}, calibrates to a known altitude (m),
+ *       or sets a manual fallback elevation. Settings saved in {@code barometer_prefs}.</li>
+ * </ol>
+ */
 public class CalibrationActivity extends AppCompatActivity implements SensorEventListener {
 
     private static final String PREFS_NAME = "CalibrationPrefs";
@@ -162,6 +173,7 @@ public class CalibrationActivity extends AppCompatActivity implements SensorEven
         });
     }
     
+    /** Displays a step-mode description in the status text view (primary color). */
     private void showStepModeInfo(String message) {
         textCalibrationStatus.setText(message);
         textCalibrationStatus.setTextColor(ContextCompat.getColor(this, R.color.colorPrimary));
@@ -184,6 +196,11 @@ public class CalibrationActivity extends AppCompatActivity implements SensorEven
         stepCounter = new EnhancedStepCounter();
     }
 
+    /**
+     * Wires the barometer section: reads saved state from {@code barometer_prefs},
+     * sets up the toggle switch, "Calibrate Altitude" button (adjusts offset to match known m),
+     * and "Save Manual Elevation" button (no-barometer fallback altitude in m).
+     */
     private void initBarometerUI() {
         switchBarometer = findViewById(R.id.switchBarometer);
         textBarometerReading = findViewById(R.id.textBarometerReading);
@@ -249,11 +266,13 @@ public class CalibrationActivity extends AppCompatActivity implements SensorEven
         inputManualElevation.setText(String.valueOf((int) barometerManager.getManualElevation()));
     }
 
+    /** Shows altitude calibration layout when barometer is on; shows manual elevation input when off. */
     private void updateBarometerVisibility(boolean barometerOn) {
         layoutBarometerCalibrate.setVisibility(barometerOn ? View.VISIBLE : View.GONE);
         layoutManualElevation.setVisibility(barometerOn ? View.GONE : View.VISIBLE);
     }
 
+    /** Restores persisted stride length and calibration status from SharedPreferences. */
     private void loadSavedCalibration() {
         double savedStride = prefs.getFloat(PREF_STRIDE_LENGTH, 0.75f);
         boolean wasCalibrated = prefs.getBoolean(PREF_CALIBRATED, false);
@@ -268,6 +287,7 @@ public class CalibrationActivity extends AppCompatActivity implements SensorEven
         }
     }
 
+    /** Pre-selects the radio button corresponding to the saved {@link StepCounterPreferences.StepMode}. */
     private void loadStepModeSelection() {
         StepCounterPreferences.StepMode mode = stepPrefs.getStepMode();
         switch (mode) {
@@ -277,6 +297,7 @@ public class CalibrationActivity extends AppCompatActivity implements SensorEven
         }
     }
 
+    /** Reads the selected radio button, persists the mode via {@link StepCounterPreferences}, and shows a confirmation dialog. */
     private void saveStepMode() {
         StepCounterPreferences.StepMode selectedMode;
         String modeName;
@@ -306,6 +327,7 @@ public class CalibrationActivity extends AppCompatActivity implements SensorEven
             .show();
     }
 
+    /** Starts calibration if idle, stops it if already running. */
     private void toggleCalibration() {
         if (isCalibrating) {
             stopCalibration();
@@ -314,6 +336,11 @@ public class CalibrationActivity extends AppCompatActivity implements SensorEven
         }
     }
 
+    /**
+     * Resets counters, registers sensors and GPS (1 s/0.5 s interval, high accuracy),
+     * and begins accumulating steps and GPS distance. Uses hardware step detector when available,
+     * falls back to {@link EnhancedStepCounter} on linear acceleration.
+     */
     @SuppressLint("MissingPermission")
     private void startCalibration() {
         calibrationStepCount = 0;
@@ -376,6 +403,7 @@ public class CalibrationActivity extends AppCompatActivity implements SensorEven
         Toast.makeText(this, "Walk to calibrate - GPS acquiring...", Toast.LENGTH_SHORT).show();
     }
 
+    /** Unregisters sensors and GPS, computes final stride length = distance / steps, enables Save. */
     private void stopCalibration() {
         isCalibrating = false;
         sensorManager.unregisterListener(this);
@@ -394,6 +422,11 @@ public class CalibrationActivity extends AppCompatActivity implements SensorEven
         }
     }
 
+    /**
+     * Updates GPS status label by accuracy tier (&lt;10/&lt;20/&lt;30/≥30 m).
+     * Accumulates path distance from consecutive fixes with accuracy &lt;30 m,
+     * filtering segments outside the range [0.3, 15] m to reject noise and jumps.
+     */
     private void handleGPSUpdate(Location location) {
         if (!isCalibrating) return;
 
@@ -441,6 +474,10 @@ public class CalibrationActivity extends AppCompatActivity implements SensorEven
         }
     }
 
+    /**
+     * Saves stride length to SharedPreferences. If manual distance + steps are provided, they
+     * override the GPS-derived value (distance ÷ steps). Marks calibration status as "Calibrated".
+     */
     private void saveCalibration() {
         String knownDistanceStr = inputKnownDistance.getText().toString();
         String knownStepsStr = inputKnownSteps.getText().toString();
@@ -526,6 +563,12 @@ public class CalibrationActivity extends AppCompatActivity implements SensorEven
         }
     }
 
+    /**
+     * Fallback step detection via {@link EnhancedStepCounter} when TYPE_STEP_DETECTOR is unavailable.
+     *
+     * @param values    Linear acceleration [x, y, z] (m/s²).
+     * @param timestamp Event timestamp (ns).
+     */
     private void processStepDetection(float[] values, long timestamp) {
         if (stepCounter.detectStep(values, timestamp)) {
             calibrationStepCount++;
@@ -538,6 +581,7 @@ public class CalibrationActivity extends AppCompatActivity implements SensorEven
         }
     }
 
+    /** Recomputes magnetic heading (°) from gravity + mag via rotation matrix whenever either sensor updates. */
     private void updateHeading() {
         if (gravityValues != null && magValues != null) {
             float[] rotationMatrix = new float[9];

@@ -86,7 +86,14 @@ public class LayerManager {
         this.context = context.getApplicationContext();
     }
 
-    /** Must be called after the MapView overlays are populated (i.e. after initMap). */
+    /**
+     * Binds this manager to a MapView. Must be called after the MapView overlays
+     * are populated (i.e. after {@code initMap}). Wraps the built-in OSM base overlay
+     * with an alpha-capable version and registers a viewport listener to trigger
+     * dynamic KML NetworkLink refreshes on scroll/zoom.
+     *
+     * @param mapView The osmdroid MapView to manage.
+     */
     public void attach(MapView mapView) {
         this.mapView = mapView;
         // Wrap the built-in OSM base overlay with our alpha-capable version
@@ -106,13 +113,20 @@ public class LayerManager {
         });
     }
 
-    /** Schedule a deferred KML dynamic-link refresh (debounced 1.5 s after last viewport change). */
+    /**
+     * Debounces KML dynamic NetworkLink refreshes to 1.5 s after the last viewport change.
+     * Cancels any pending refresh before rescheduling.
+     */
     private void scheduleKmlRefresh() {
         if (kmlPendingLinks.isEmpty()) return;
         if (kmlRefreshTask != null) kmlRefreshTask.cancel(false);
         kmlRefreshTask = kmlRefreshPool.schedule(this::doKmlRefresh, 1500, TimeUnit.MILLISECONDS);
     }
 
+    /**
+     * Executes the pending KML dynamic NetworkLink fetch for the current viewport
+     * and posts any newly created overlays to the MapView on the main thread.
+     */
     private void doKmlRefresh() {
         if (mapView == null || kmlPendingLinks.isEmpty()) return;
         List<org.osmdroid.views.overlay.Overlay> newOverlays =
@@ -127,6 +141,13 @@ public class LayerManager {
 
     // ------------------------------------------------------------------ CRUD
 
+    /**
+     * Adds a WMS or WMTS tile overlay to the map.
+     * If a layer with the same {@link MapLayer#getId()} already exists, the call is a no-op.
+     * Safe to call before {@link #attach(MapView)}; the overlay will be inserted on attach.
+     *
+     * @param layer Layer descriptor containing endpoint URL, layer name, format, and style.
+     */
     public void addLayer(MapLayer layer) {
         if (entries.containsKey(layer.getId())) return;
 
@@ -146,6 +167,13 @@ public class LayerManager {
         }
     }
 
+    /**
+     * Removes a layer and its overlay(s) from the map.
+     * The OSM base layer ({@code "osm_base"}) cannot be removed and the call is silently ignored.
+     * Handles both tile layers (WMS/WMTS) and vector/raster import layers (KML, Shapefile, GeoTIFF).
+     *
+     * @param id Layer identifier as returned by {@link MapLayer#getId()}.
+     */
     public void removeLayer(String id) {
         if ("osm_base".equals(id)) return; // base layer cannot be removed
         LayerEntry e = entries.remove(id);
@@ -163,6 +191,13 @@ public class LayerManager {
         }
     }
 
+    /**
+     * Shows or hides a layer without removing it from the overlay list.
+     * Works for tile layers, KML/Shapefile layers, and the OSM base layer.
+     *
+     * @param id      Layer identifier.
+     * @param visible {@code true} to show, {@code false} to hide.
+     */
     public void setVisible(String id, boolean visible) {
         if ("osm_base".equals(id)) {
             osmBaseLayer.setVisible(visible);
@@ -185,6 +220,13 @@ public class LayerManager {
         }
     }
 
+    /**
+     * Sets the opacity of a tile layer overlay.
+     * Only applies to tile layers (WMS/WMTS/MBTiles); KML/Shapefile layers are unaffected.
+     *
+     * @param id    Layer identifier.
+     * @param alpha Opacity in [0.0, 1.0] (0 = fully transparent, 1 = fully opaque).
+     */
     public void setAlpha(String id, float alpha) {
         if ("osm_base".equals(id)) {
             osmBaseLayer.setAlpha(alpha);
@@ -199,6 +241,12 @@ public class LayerManager {
         if (mapView != null) mapView.invalidate();
     }
 
+    /**
+     * Returns all currently managed layers in display order: OSM base first,
+     * then tile layers in insertion order, then KML/Shapefile/GeoTIFF layers.
+     *
+     * @return Mutable snapshot list of {@link MapLayer} descriptors.
+     */
     public List<MapLayer> getLayers() {
         List<MapLayer> out = new ArrayList<>();
         out.add(osmBaseLayer); // base layer always first
@@ -303,9 +351,11 @@ public class LayerManager {
      * Import a KML or KMZ file from a SAF URI and add its geometries as overlays.
      * Must be called off the UI thread.
      *
+     * @param uri         SAF content URI pointing to the KML/KMZ file.
+     * @param displayName Human-readable name shown in the layer list.
+     * @return Number of overlays added (0 = file parsed but contained no displayable content).
      * @throws Exception if parse or IO fails
      */
-    /** Returns number of overlays added (0 = file parsed but had no displayable content). */
     public int importKml(Uri uri, String displayName) throws Exception {
         if (mapView == null) return 0;
         KmlOverlay.LoadResult result = KmlOverlay.loadFull(context, uri, mapView);
@@ -359,6 +409,7 @@ public class LayerManager {
         return buildTileSource(e.layer);
     }
 
+    /** @return The synthetic {@link MapLayer} descriptor for the built-in OSM base tile layer. */
     public MapLayer getOsmBaseLayer() { return osmBaseLayer; }
 
     /**
@@ -402,6 +453,14 @@ public class LayerManager {
 
     // ------------------------------------------------------------------ internal
 
+    /**
+     * Constructs the appropriate osmdroid tile source for a layer descriptor.
+     * Dispatches to {@link WmtsTileSource} for {@link LayerType#WMTS} layers,
+     * and {@link WmsTileSource} (WMS 1.1.1 GetMap) for all other types.
+     *
+     * @param layer Layer descriptor.
+     * @return Configured tile source ready for use with a {@link MapTileProviderBasic}.
+     */
     private OnlineTileSourceBase buildTileSource(MapLayer layer) {
         if (layer.getType() == LayerType.WMTS) {
             return new WmtsTileSource(
@@ -430,6 +489,11 @@ public class LayerManager {
 
     // ------------------------------------------------------------------ alpha overlay
 
+    /**
+     * {@link TilesOverlay} subclass that supports per-layer opacity via
+     * {@link Canvas#saveLayerAlpha}. At full opacity (alpha = 1.0) the extra
+     * save/restore call is skipped to avoid unnecessary overdraw.
+     */
     static class AlphaTilesOverlay extends TilesOverlay {
         private float alpha = 1.0f;
 
@@ -437,10 +501,16 @@ public class LayerManager {
             super(provider, ctx);
         }
 
+        /**
+         * Sets tile opacity, clamped to [0.0, 1.0].
+         *
+         * @param alpha 0 = fully transparent, 1 = fully opaque.
+         */
         void setAlpha(float alpha) {
             this.alpha = Math.max(0f, Math.min(1f, alpha));
         }
 
+        /** Draws tiles at the configured alpha; bypasses layer save at full opacity. */
         @Override
         public void draw(Canvas canvas, MapView mapView, boolean shadow) {
             if (alpha >= 1.0f) {

@@ -48,6 +48,22 @@ import nisargpatel.deadreckoning.sensor.DeadReckoningEngine;
 import nisargpatel.deadreckoning.sensor.PreciseHeadingEstimator;
 import nisargpatel.deadreckoning.storage.TripStorage;
 
+/**
+ * Foreground service that runs the dead-reckoning pipeline while the screen is off or the app
+ * is in the background. Acquires a {@link PowerManager#PARTIAL_WAKE_LOCK} for the sensor hub.
+ *
+ * <p>Lifecycle: send {@link #ACTION_START} / {@link #ACTION_STOP} intents, or bind with
+ * {@link LocalBinder} to call methods directly from the UI.
+ *
+ * <p>Sensor routing:
+ * <ul>
+ *   <li>GRAVITY + MAGNETIC_FIELD + GYROSCOPE + GAME_ROTATION_VECTOR → {@link PreciseHeadingEstimator}</li>
+ *   <li>LINEAR_ACCELERATION → {@link DeadReckoningEngine#updateSensors} (includes latest heading state)</li>
+ *   <li>ACCELEROMETER → {@link nisargpatel.deadreckoning.sensor.PocketStateDetector}</li>
+ *   <li>PRESSURE → {@link DeadReckoningEngine#updateBarometer} (hPa)</li>
+ * </ul>
+ * GPS fixes with accuracy &lt; 15 m are forwarded to {@link DeadReckoningEngine#calibrateWithGPS}.
+ */
 public class TrackingService extends Service implements SensorEventListener {
 
     private static final String CHANNEL_ID = "tracking_channel";
@@ -99,7 +115,9 @@ public class TrackingService extends Service implements SensorEventListener {
         }
     };
 
+    /** Binder that lets bound activities retrieve this service instance directly. */
     public class LocalBinder extends Binder {
+        /** @return The running {@link TrackingService} instance. */
         public TrackingService getService() {
             return TrackingService.this;
         }
@@ -116,6 +134,7 @@ public class TrackingService extends Service implements SensorEventListener {
         registerScreenReceiver();
     }
 
+    /** Acquires a {@code PARTIAL_WAKE_LOCK} so the CPU stays awake while sensors stream data. */
     private void initWakeLock() {
         PowerManager powerManager = (PowerManager) getSystemService(Context.POWER_SERVICE);
         if (powerManager != null) {
@@ -124,6 +143,7 @@ public class TrackingService extends Service implements SensorEventListener {
         }
     }
 
+    /** Registers a receiver for {@code ACTION_SCREEN_ON/OFF} to track display state. */
     private void registerScreenReceiver() {
         IntentFilter filter = new IntentFilter();
         filter.addAction(Intent.ACTION_SCREEN_ON);
@@ -150,6 +170,7 @@ public class TrackingService extends Service implements SensorEventListener {
         return binder;
     }
 
+    /** Creates the low-importance notification channel required for Android 8+ foreground services. */
     private void createNotificationChannel() {
         NotificationChannel channel = new NotificationChannel(
                 CHANNEL_ID,
@@ -165,6 +186,7 @@ public class TrackingService extends Service implements SensorEventListener {
         }
     }
 
+    /** Obtains sensor handles for gravity, magnetic field, gyroscope, linear accel, accelerometer, pressure, and game rotation vector. */
     private void initSensors() {
         sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
         sensorGravity             = sensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY);
@@ -176,6 +198,7 @@ public class TrackingService extends Service implements SensorEventListener {
         sensorGameRotationVector  = sensorManager.getDefaultSensor(Sensor.TYPE_GAME_ROTATION_VECTOR);
     }
 
+    /** Sets up the FusedLocationProviderClient and its callback; GPS updates start only after {@link #startTracking()}. */
     private void initLocation() {
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
         locationCallback = new LocationCallback() {
@@ -189,6 +212,7 @@ public class TrackingService extends Service implements SensorEventListener {
         };
     }
 
+    /** Instantiates the dead-reckoning engine, heading estimator, trip storage, and turn-mode prefs. */
     private void initEngine() {
         deadReckoningEngine = new DeadReckoningEngine();
         headingEstimator = new PreciseHeadingEstimator();
@@ -197,6 +221,7 @@ public class TrackingService extends Service implements SensorEventListener {
         isManualMode = turnModePrefs.getTurnMode() == TurnModePreferences.TurnMode.MANUAL;
     }
 
+/** Starts the tracking session: acquires wake lock, registers sensors at SENSOR_DELAY_FASTEST, requests GPS, and promotes to foreground. No-op if already tracking. */
     public void startTracking() {
         if (isTracking) return;
 
@@ -216,6 +241,7 @@ public class TrackingService extends Service implements SensorEventListener {
         updateNotification(getString(R.string.tracking_in_progress), getString(R.string.tracking_status_format, 0, 0.00));
     }
 
+/** Stops tracking: unregisters sensors, removes GPS updates, persists the current trip, releases wake lock, and stops the foreground service. No-op if not tracking. */
     public void stopTracking() {
         if (!isTracking) return;
 
@@ -237,10 +263,16 @@ public class TrackingService extends Service implements SensorEventListener {
         stopSelf();
     }
 
+/** Resets the GPS calibration point counter, forcing the engine to re-anchor on the next valid fix. */
     public void calibrateGPS() {
         gpsCalibrationPoints = 0;
     }
 
+    /**
+     * Registers all available IMU sensors at {@code SENSOR_DELAY_FASTEST} (~200 Hz).
+     * Barometer is registered at {@code SENSOR_DELAY_NORMAL} (~5 Hz) — sufficient for altitude.
+     * Null sensors (missing hardware) are silently skipped.
+     */
     private void registerSensors() {
         // SENSOR_DELAY_FASTEST → ~200 Hz on Snapdragon 8 Elite sensor hub.
         // Required by HIGH_SAMPLING_RATE_SENSORS permission (already in manifest).
@@ -268,6 +300,7 @@ public class TrackingService extends Service implements SensorEventListener {
         }
     }
 
+    /** Requests high-accuracy GPS fixes every 2 s (min interval 1 s). No-op if fine-location permission is missing. */
     private void startLocationUpdates() {
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED) {
@@ -281,6 +314,7 @@ public class TrackingService extends Service implements SensorEventListener {
         fusedLocationClient.requestLocationUpdates(locationRequest, locationCallback, Looper.getMainLooper());
     }
 
+    /** Builds and posts the persistent tracking notification; uses FOREGROUND_SERVICE_TYPE_LOCATION on Android 10+. */
     private void startForeground() {
         Intent notificationIntent = new Intent(this, MainContainerActivity.class);
         PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent,
@@ -302,6 +336,12 @@ public class TrackingService extends Service implements SensorEventListener {
         }
     }
 
+    /**
+     * Updates the foreground notification text in-place without re-calling startForeground.
+     *
+     * @param title   Notification title line.
+     * @param content Notification body (e.g. step count + distance).
+     */
     private void updateNotification(String title, String content) {
         Intent notificationIntent = new Intent(this, MainContainerActivity.class);
         PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent,
@@ -322,6 +362,10 @@ public class TrackingService extends Service implements SensorEventListener {
         }
     }
 
+    /**
+     * Processes a GPS fix: passes it to the DR engine if accuracy &lt; 15 m and updates the
+     * foreground notification with the latest step count and distance (m).
+     */
     private void handleGPSUpdate(Location location) {
         if (!isTracking) return;
 
@@ -376,48 +420,58 @@ public class TrackingService extends Service implements SensorEventListener {
     public void onAccuracyChanged(Sensor sensor, int accuracy) {
     }
 
+    /** @return {@code true} while a tracking session is active. */
     public boolean isTracking() {
         return isTracking;
     }
 
+    /** @return Total step count for the current session. */
     public int getStepCount() {
         return deadReckoningEngine.getStepCount();
     }
 
+    /** @return Cumulative distance travelled in the current session (m). */
     public double getDistance() {
         return deadReckoningEngine.getDistance();
     }
 
+    /** @return Current heading (°) in [0, 360). */
     public double getHeading() {
         return deadReckoningEngine.getHeading();
     }
 
+    /** @return Number of GPS fixes that met the &lt;15 m accuracy threshold since last {@link #calibrateGPS()} call. */
     public int getCalibrationPoints() {
         return gpsCalibrationPoints;
     }
 
+    /** Records a manual 90° left turn in the dead-reckoning engine. No-op if not tracking. */
     public void turnLeft() {
         if (isTracking) {
             deadReckoningEngine.turnLeft();
         }
     }
 
+    /** Records a manual 90° right turn in the dead-reckoning engine. No-op if not tracking. */
     public void turnRight() {
         if (isTracking) {
             deadReckoningEngine.turnRight();
         }
     }
 
+    /** Records a manual 180° about-face in the dead-reckoning engine. No-op if not tracking. */
     public void turnAround() {
         if (isTracking) {
             deadReckoningEngine.turnAround();
         }
     }
 
+    /** @return Current pocket/screen-facing state from the accelerometer-based detector. */
     public nisargpatel.deadreckoning.sensor.PocketStateDetector.State getPocketState() {
         return pocketDetector.getState();
     }
 
+    /** @return Current barometric elevation estimate (m). */
     public double getElevation() {
         return deadReckoningEngine.getElevation();
     }

@@ -15,17 +15,29 @@ import java.util.List;
 
 import nisargpatel.deadreckoning.R;
 
+/**
+ * RecyclerView adapter for the layer stack in {@link LayerControlSheet}.
+ * Each item shows the layer name, a visibility toggle, an opacity seek bar, and a remove button.
+ */
 public class LayerAdapter extends RecyclerView.Adapter<LayerAdapter.VH> {
 
+    /** Callback interface for user interactions on individual layer items. */
     public interface Listener {
+        /** @param visible New visibility state set by the toggle switch. */
         void onVisibilityChanged(MapLayer layer, boolean visible);
+        /** @param alpha New opacity in [0.0, 1.0] from the seek bar. */
         void onAlphaChanged(MapLayer layer, float alpha);
+        /** Called when the user taps the remove button for a layer. */
         void onRemove(MapLayer layer);
     }
 
     private final List<MapLayer> layers;
     private final Listener listener;
 
+    /**
+     * @param layers   Live list of layers to display; mutated externally via {@link #notifyDataSetChanged()}.
+     * @param listener Interaction callback.
+     */
     public LayerAdapter(List<MapLayer> layers, Listener listener) {
         this.layers   = layers;
         this.listener = listener;

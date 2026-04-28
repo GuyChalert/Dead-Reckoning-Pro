@@ -24,6 +24,12 @@ import nisargpatel.deadreckoning.sensor.EnhancedStepCounter;
 import nisargpatel.deadreckoning.stepcounting.DynamicStepCounter;
 import nisargpatel.deadreckoning.stepcounting.StaticStepCounter;
 
+/**
+ * Fragment that shows live step counts and estimated distance using the active
+ * {@link StepCounterPreferences.StepMode}: DYNAMIC, ANDROID, or STATIC.
+ * Runs all three algorithm families simultaneously (5 static + 5 dynamic + Android step detector)
+ * so the UI can display each counter in real time without restarting sensors on mode switch.
+ */
 public class StepsFragment extends Fragment implements SensorEventListener {
 
     private static final double DEFAULT_STRIDE_LENGTH = 0.75;
@@ -79,6 +85,7 @@ public class StepsFragment extends Fragment implements SensorEventListener {
         progressAcc = view.findViewById(R.id.progressAcc);
     }
 
+    /** Reads the current step mode from preferences and updates the mode label TextView. */
     private void updateModeDisplay() {
         StepCounterPreferences.StepMode mode = stepPrefs.getStepMode();
         String modeText;
@@ -163,6 +170,13 @@ public class StepsFragment extends Fragment implements SensorEventListener {
         }
     }
 
+    /**
+     * Dispatches a TYPE_LINEAR_ACCELERATION event through all step counters and updates UI.
+     * Distance is estimated as {@code displaySteps × DEFAULT_STRIDE_LENGTH} (m).
+     *
+     * @param values    Linear acceleration [x, y, z] (m/s²).
+     * @param timestamp Event timestamp (ns).
+     */
     private void processLinearAcceleration(float[] values, long timestamp) {
         double norm = ExtraFunctions.calcNorm(values[0], values[1], values[2]);
 
